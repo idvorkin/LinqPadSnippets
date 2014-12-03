@@ -45,8 +45,8 @@ $typeBlackList = "Accepted,Fwd,Canceled,Declined".Split(',')
 $folderItems = $ol.Folders.DeletedItems.Items
 
 
-"Enumerating Folder, this will take minutes ... "
-$Duration = Measure-Command {$folderItems = $ol.Folders.DeletedItems.Items | Select -First $clipCount}
+"Enumerating Folder, this will take minutes and slow down outlook ... "
+$Duration = Measure-Command {$folderItems = $ol.Folders.Inbox.Items | Select -First $clipCount}
 "It took  $($duration.TotalMinutes) Minutes" 
 "Count Items [max=$clipCount]:$(($folderItems |Measure).Count)"
 
@@ -62,13 +62,9 @@ $conciseMail = $folderItems|
 
 
 "Count Concise Mails: $($($conciseMail).Count)"
-$conciseMail
+$conciseMail | Group-Object Type, IsReply | Select Count, Name
 
+$tmp = [System.IO.Path]::GetTempFileName() 
+$conciseMail  | Export-CSV  $tmp
 
-
-
-
-
-
-
-
+"Detail Messages For Analysis are in: $tmp"
