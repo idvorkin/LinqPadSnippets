@@ -29,11 +29,15 @@
 void Main()
 {
 	var auth = new LiveAuth(new Client());
-	var c = new CreateExamples(auth.GetOAuthUserAccessToken());
+	var accessURL = auth.GetOAuthUserAccessToken();
+	
+//	accessURL="HOWDY_DOODY";
+	var c = new CreateExamples(accessURL);
 	var url = "http://www.google.com";
 	var urlTitle = "www.google.com";
-	var response = c.CreatePageWithUrl("OneClip",url,urlTitle);
+	var response = c.CreatePageWithUrl2("OneClip-Pinned Urls",url,urlTitle);
 	response.Wait();
+	response.Dump();
 }
 
 internal class Client
@@ -236,6 +240,38 @@ public class CreateExamples
 
       return await TranslateResponse(response);
   }
+          async public Task<StandardResponse> CreatePageWithUrl2(string sectionName, string url, string urlTitle)
+        {
+            var client = new HttpClient();
+
+            // Note: API only supports JSON return type.
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", this.AuthToken);
+
+            string date = GetDate();
+            string simpleHtml = @"<html>" +
+                                "<head>" +
+                                "<title>" + urlTitle + "</title>" +
+                                "<meta name=\"created\" content=\"" + date + "\" />" +
+                                "</head>" +
+                                "<body>" +
+                                " <p> source: <a href=\"" + url+"\"> </p>"+
+                                "<img data-render-src=\"" + url + "\" alt=\"An important web page\"/>" +
+                                "<p> Copied using <a href=\"http://OneClip.com\">OneClip</a> on "+ DateTime.Now.ToShortDateString() +".</p>" +
+                                "</body>" +
+                                "</html>";
+
+            var createMessage = new HttpRequestMessage(HttpMethod.Post, GetPagesEndpoint(sectionName))
+            {
+                Content = new StringContent(simpleHtml, System.Text.Encoding.UTF8, "text/html")
+            };
+
+            HttpResponseMessage response = await client.SendAsync(createMessage);
+
+            return await TranslateResponse(response);
+        }
+
 
   /// <summary>
   /// Get date in ISO8601 format with local timezone offset
