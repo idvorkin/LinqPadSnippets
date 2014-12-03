@@ -44,9 +44,8 @@ $clipCount =10000
 $typeBlackList = "Accepted,Fwd,Canceled,Declined".Split(',')
 $folderItems = $ol.Folders.DeletedItems.Items
 
-
-"Enumerating Folder, this will take minutes ... "
-$Duration = Measure-Command {$folderItems = $ol.Folders.DeletedItems.Items | Select -First $clipCount}
+"Enumerating Folder, it will take minutes to enumerate upto $clipCount emails... "
+$Duration = Measure-Command {$folderItems = $ol.Folders.Inbox.Items | Select -First $clipCount}
 "It took  $($duration.TotalMinutes) Minutes" 
 "Count Items [max=$clipCount]:$(($folderItems |Measure).Count)"
 
@@ -61,7 +60,7 @@ $conciseMail = $folderItems|
 
 
 
-"Count Concise Mails: $($($conciseMail).Count)"
+"Count Concise Mails: $(@($conciseMail).Count)"
 $conciseMail
 
 
