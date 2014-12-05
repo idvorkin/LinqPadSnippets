@@ -4,6 +4,7 @@
   <Namespace>Microsoft.Office</Namespace>
   <Namespace>Microsoft.Office.Interop</Namespace>
   <Namespace>Microsoft.Office.Interop.Outlook</Namespace>
+  <Namespace>Microsoft.Office.Interop.Word</Namespace>
   <Namespace>System</Namespace>
   <Namespace>System.Collections.Generic</Namespace>
   <Namespace>System.Configuration</Namespace>
@@ -32,26 +33,24 @@ selected.Dump();
 var selectedMail = selected as MailItem;
 selectedMail.Subject.Dump("Selected Mail Subject");
 
-var inlineResponse = explorer.ActiveInlineResponse as MailItem;
-inlineResponse.Subject.Dump("Inline Response Subject");
-inlineResponse.Subject = "SnowFlakes";
-var editor = explorer.ActiveInlineResponseWordEditor;
+"Replying creating one".Dump();
+var reply = selectedMail.Reply() as MailItem;
+reply.Display(false);
+var inspect = app.ActiveInspector();
+var mailDoc = inspect.WordEditor as Document;
+mailDoc.Dump("Word Editor");
+
+mailDoc.Content.InsertBefore("LIKE");
+mailDoc.Content.InsertBefore("<B> LIKE_BOLD </B>");
+var newRange = mailDoc.Range(0,0);
+newRange.Italic=1;
+newRange.Text = "Hello";
 
 
-// inspectors only exist with popped out mails. 
+//mailDoc.Bookmarks.Dump();
+//mailDoc.Paragraphs.Cast<Paragraph>().Select(p=>p.
+///var newP = we.Content.Paragraphs.Add(null);
 
-/*
-var inspector = app.ActiveInspector();
-explorer.ActiveInlineResponse
 
-inspector.EditorType.Dump("Editor Type");
-var wordEditor = inspector.WordEditor;
-wordEditor.Dump("Word Editor");
-
-var inspectedMail = inspector.CurrentItem as MailItem;
-inspectedMail.Subject.Dump();
-inspectedMail.Body.Dump();
-*/
-//inspector.CurrentItem.Dump();
-//inspector.Dump("Current Inspsector");
-//app.Inspectors.Dump("Inspectors");
+reply.Subject.Dump("reply Subject");
+//inlineResponse.Subject = "SnowFlakes";
