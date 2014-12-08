@@ -104,7 +104,7 @@ $data = @{ "version" = $version
 
 $data  | Export-CliXml  -Path $tmp
 $mail = $ol.Application.CreateItem($ol.ItemType::olMailItem)
-$mail.Subject = "Typed Mail Stats from:$([Environment]::UserName) version:$version";
+$mail.Subject = "Typed-Mail-Stats from: $([Environment]::UserName) version:$version";
 $mail.HTMLBody = "Thank you for supporting concise mail!";
 $mail.To = "igord@microsoft.com"
 $mail.Attachments.Add($tmp)
