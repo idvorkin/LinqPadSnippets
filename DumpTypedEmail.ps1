@@ -3,6 +3,7 @@ $ErrorActionPreference="Stop"
 
 # More info @ https://github.com/idvorkin/psOutlook
 
+
 function global:Get-Outlook
 {
     Add-type -assembly "Microsoft.Office.Interop.Outlook" 
@@ -12,6 +13,7 @@ function global:Get-Outlook
         MAPI = $mapi
         Application = $olApp
         Folders = @{}
+        ItemType = [Microsoft.Office.Interop.Outlook.olItemType]
     }
 
     # Add the Folders
@@ -33,7 +35,6 @@ function global:Get-Outlook
             $_.Send()
         }
     } 
-
     return $ol
 }
 
@@ -44,12 +45,13 @@ $clipCount =10000
 $typeBlackList = "Accepted,Fwd,Canceled,Declined".Split(',')
 $queryFilter =  '[CreationTime]> "11/1/2014"'
 $g_AllMails = New-Object System.Collections.ArrayList #Yuk Global
+$version = 0.5
 function enumerateFolder ($folder)
 {
     $folderName = $folder.Name
     "Enumerating ($folderName) with filter: $queryFilter"
 
-    $table = $folder.GetTable($queryFilter, [Microsoft.Office.Interop.Outlook.olItemType]::olMailItem) 
+    $table = $folder.GetTable($queryFilter, $ol.ItemType::olMailItem) 
 
     $table.Columns.RemoveAll()
     $m = $table.Columns.Add("Subject")
@@ -92,9 +94,21 @@ $conciseMail = $g_AllMails|
         @{Name="CreationTime";Expression={ $_.CreationTime }} |
         ? {! $typeBlackList.contains($_.Type)}
 
-$tmp = [System.IO.Path]::GetTempFileName() 
+$tmp = [System.IO.Path]::GetTempFileName() + ".txt"
 $conciseMail | Group-Object Type, IsReply | Select Count, Name | Sort Count -Descending | Select -First 20
 $countEmailByDay = $g_AllMails | Select  CreationTime | Group-Object CreationTime
-$data = @{ "conciseMails"= $conciseMail; "countEmailByDay"=$countEmailByDay ;}  
+
+$data = @{ "version" = $version
+           "conciseMails"= $conciseMail; 
+           "countEmailByDay"=$countEmailByDay ;}  
+
 $data  | Export-CliXml  -Path $tmp
-"Detail Messages For Analysis are in: $tmp"
+$mail = $ol.Application.CreateItem($ol.ItemType::olMailItem)
+$mail.Subject = "Typed Mail Stats from:$([Environment]::UserName) version:$version";
+$mail.HTMLBody = "Thank you for supporting concise mail!";
+$mail.To = "igord@microsoft.com"
+$mail.Attachments.Add($tmp)
+$mail.Save();
+$mail.Display(0);
+"Detail Messages For Analysis are in: $tmp."
+"Please click send on the e-mail Analysis are in: $tmp."
