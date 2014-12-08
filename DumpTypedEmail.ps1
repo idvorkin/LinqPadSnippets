@@ -43,7 +43,7 @@ $ol = Get-Outlook
 $clipCount =10000
 $typeBlackList = "Accepted,Fwd,Canceled,Declined".Split(',')
 $queryFilter =  '[Received]> "11/1/2014"'
-$folderItems = New-Object System.Collections.ArrayList #Yuk Global
+$g_AllMails = New-Object System.Collections.ArrayList #Yuk Global
 function enumerateFolder ($folder)
 {
     $folderName = $folder.Name
@@ -69,7 +69,7 @@ function enumerateFolder ($folder)
                     "ReceivedTime"=$flatTable[$row,1];
                     "SenderName"=$flatTable[$row,2] ;
             }
-        $_ = $folderItems.Add($a)
+        $_ = $g_AllMails.Add($a)
     }
 }
 
@@ -77,13 +77,9 @@ function enumerateFolder ($folder)
 enumerateFolder($ol.Folders.DeletedItems)
 enumerateFolder($ol.Folders.Inbox)
 enumerateFolder($ol.Folders.SentMail)
-"Enumerating Folder, it will take minutes to enumerate upto $clipCount emails... "
-$Duration = Measure-Command {$folderItems = $ol.Folders.Inbox.Items | Select -First $clipCount}
-"It took  $($duration.TotalMinutes) Minutes" 
-"Count Items [max=$clipCount]:$($folderItems.Count)"
-
+"Count Items [max=$clipCount]:$($g_AllMails.Count)"
 $matcherRE =  '^(RE: )?(\w{3,})\:'
-$conciseMail = $folderItems|  
+$conciseMail = $g_AllMails|  
     ? {$_.Subject -match $matcherRE} | 
     Select -Property  @{Name="IsReply";Expression={$_.Subject -match 'RE:'}},
         @{Name="Type";Expression={ $matches[2] }},
