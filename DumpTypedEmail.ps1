@@ -42,7 +42,7 @@ $ol = Get-Outlook
 #paramaters
 $clipCount =10000
 $typeBlackList = "Accepted,Fwd,Canceled,Declined".Split(',')
-$queryFilter =  '[Received]> "11/1/2014"'
+$queryFilter =  '[CreationTime]> "11/1/2014"'
 $g_AllMails = New-Object System.Collections.ArrayList #Yuk Global
 function enumerateFolder ($folder)
 {
@@ -53,7 +53,7 @@ function enumerateFolder ($folder)
 
     $table.Columns.RemoveAll()
     $m = $table.Columns.Add("Subject")
-    $m = $table.Columns.Add("ReceivedTime")
+    $m = $table.Columns.Add("CreationTime")
     $m = $table.Columns.Add("SenderName")
 
     $countColumns = 3
@@ -62,14 +62,18 @@ function enumerateFolder ($folder)
     }
     for ($row =0; $row -lt $flatTable.Count ;$row++)
     {
+        $date = "" 
+        $possibleDate =  $flatTable[$row,1];
+        if ($possibleDate) {$date =(get-date ($possibleDate)).toShortDateString();}
+
         $a =@{ 
                     # TODO clean up this crappy code.
                     "Folder"=$folderName
                     "Subject"=$flatTable[$row,0];
-                    "ReceivedTime"=$flatTable[$row,1];
+                    "CreationTime"=$date
                     "SenderName"=$flatTable[$row,2] ;
             }
-        $_ = $g_AllMails.Add($a)
+        $squelch_output = $g_AllMails.Add((New-Object PSObject -Property $a))
     }
 }
 
@@ -85,9 +89,12 @@ $conciseMail = $g_AllMails|
         @{Name="Type";Expression={ $matches[2] }},
         @{Name="SenderName";Expression={ $_.SenderName }},
         @{Name="Folder";Expression={ $_.Folder }},
-        @{Name="ReceivedTime";Expression={ $_.ReceivedTime }} |
+        @{Name="CreationTime";Expression={ $_.CreationTime }} |
         ? {! $typeBlackList.contains($_.Type)}
-$conciseMail | Group-Object Type, IsReply | Select Count, Name | Sort Count -Descending | Select -First 20
+
 $tmp = [System.IO.Path]::GetTempFileName() 
-$conciseMail  | Export-CSV  $tmp
+$conciseMail | Group-Object Type, IsReply | Select Count, Name | Sort Count -Descending | Select -First 20
+$countEmailByDay = $g_AllMails | Select  CreationTime | Group-Object CreationTime
+$data = @{ "conciseMails"= $conciseMail; "countEmailByDay"=$countEmailByDay ;}  
+$data  | Export-CliXml  -Path $tmp
 "Detail Messages For Analysis are in: $tmp"
