@@ -7,6 +7,9 @@
   <Reference>&lt;RuntimeDirectory&gt;\System.Security.dll</Reference>
   <Reference>&lt;RuntimeDirectory&gt;\System.Windows.Forms.dll</Reference>
   <NuGetReference>Newtonsoft.Json</NuGetReference>
+  <NuGetReference>RestSharp</NuGetReference>
+  <Namespace>Newtonsoft.Json</Namespace>
+  <Namespace>Newtonsoft.Json.Linq</Namespace>
   <Namespace>System</Namespace>
   <Namespace>System.Collections.Generic</Namespace>
   <Namespace>System.Collections.Specialized</Namespace>
@@ -22,21 +25,31 @@
   <Namespace>System.Threading</Namespace>
   <Namespace>System.Threading.Tasks</Namespace>
   <Namespace>System.Windows.Forms</Namespace>
-  <Namespace>Newtonsoft.Json.Linq</Namespace>
-  <Namespace>Newtonsoft.Json</Namespace>
+  <Namespace>RestSharp</Namespace>
+  <Namespace>RestSharp.Authenticators</Namespace>
 </Query>
 
 void Main()
 {
-	var auth = new LiveAuth(new Client());
-	var accessURL = auth.GetOAuthUserAccessToken();
-	
-//	accessURL="HOWDY_DOODY";
-	var c = new CreateExamples(accessURL);
-	var url = "http://www.google.com";
-	var urlTitle = "www.google.com";
-	var response = c.CreatePageWithUrl2("OneClip-Pinned Urls",url,urlTitle);
-	response.Wait();
+	var cacheAccessTokenFile = Path.Combine(Path.GetTempPath(), $"saveOneNoteAccessToken_{Util.HostProcessID}");
+	cacheAccessTokenFile.Dump();
+	string accessToken = "";
+	if (File.Exists(cacheAccessTokenFile))
+    {
+		accessToken = File.ReadAllText(cacheAccessTokenFile);
+	}
+	else
+	{
+		var auth = new LiveAuth(new Client());
+		accessToken = auth.GetOAuthUserAccessToken();
+		File.WriteAllText(cacheAccessTokenFile, accessToken);
+		// XXX: Handle expired token.
+	}
+
+	var c = new CreateExamples(accessToken);
+	var url = "http://www.bing.com";
+	var pageName = "Another Stab";
+	var response = c.CreatePageWithUrl2("OneClip-Pinned Urls",url,pageName);
 	response.Dump();
 }
 
@@ -126,6 +139,7 @@ class LiveAuth
        userAccessTokenParameters["client_secret"] = client.Secret;
        userAccessTokenParameters["redirect_uri"] = wlCallBackUri;
        userAccessTokenParameters["grant_type"] = "authorization_code";
+       // XX:X: 
        userAccessTokenParameters["code"] = GetOAuthClientAccessCode();
 
        var wc = new WebClient();
@@ -136,6 +150,7 @@ class LiveAuth
        return parsedToken.Value<string>("access_token");
    }
 }
+
 public class CreateExamples
 {
   private static readonly string PagesEndPoint = "https://www.onenote.com/api/v1.0/pages";
@@ -148,18 +163,19 @@ public class CreateExamples
       AuthToken = authToken;
   }
 
-  public Uri GetPagesEndpoint(string specifiedSectionName)
-  {
-      string sectionNameToUse;
-      if (specifiedSectionName != null)
-      {
-          sectionNameToUse = specifiedSectionName;
-      }
-      else
-      {
-          sectionNameToUse = DEFAULT_SECTION_NAME;
-      }
-      return new Uri(PagesEndPoint + "/?sectionName=" + sectionNameToUse);
+	
+	public Uri GetPagesEndpoint(string specifiedSectionName)
+	{
+		string sectionNameToUse;
+		if (specifiedSectionName != null)
+		{
+			sectionNameToUse = specifiedSectionName;
+		}
+		else
+		{
+			sectionNameToUse = DEFAULT_SECTION_NAME;
+		}
+		return new Uri(PagesEndPoint + "/?sectionName=" + sectionNameToUse);
   }
 
   /// <summary>
@@ -206,59 +222,28 @@ public class CreateExamples
   /// Create a page with an image of a URL on it.
   /// </summary>
   /// <param name="debug">Run the code under the debugger</param>
-  async public Task<StandardResponse> CreatePageWithUrl(string sectionName, string url, string urlTitle)
-  {
-      var client = new HttpClient();
-
-      // Note: API only supports JSON return type.
-      client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-      // This allows you to see what happens when an unauthenticated call is made.
-      if (IsAuthenticated)
-      {
-          client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", this.AuthToken);
-      }
-
-      string date = GetDate();
-      string simpleHtml = @"<html>" +
-                          "<head>" +
-                          "<title>"+urlTitle+"</title>" +
-                          "<meta name=\"created\" content=\"" + date + "\" />" +
-                          "</head>" +
-                          "<body>" +
-                          "<p>This is a page with an image of an html page rendered from a URL on it.</p>" +
-                          "<img data-render-src=\""+url+"\" alt=\"An important web page\"/>" +
-                          "</body>" +
-                          "</html>";
-
-      var createMessage = new HttpRequestMessage(HttpMethod.Post, GetPagesEndpoint(sectionName))
-      {
-          Content = new StringContent(simpleHtml, System.Text.Encoding.UTF8, "text/html")
-      };
-
-      HttpResponseMessage response = await client.SendAsync(createMessage);
-
-      return await TranslateResponse(response);
-  }
-          async public Task<StandardResponse> CreatePageWithUrl2(string sectionName, string url, string urlTitle)
-        {
-            var client = new HttpClient();
-
-            // Note: API only supports JSON return type.
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
+   async public Task<StandardResponse> CreatePageWithUrl2(string sectionName, string url, string urlTitle)
+       {
+     		var client = new HttpClient();
+			client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", this.AuthToken);
 
-            string date = GetDate();
             string simpleHtml = @"<html>" +
-                                "<head>" +
-                                "<title>" + urlTitle + "</title>" +
-                                "<meta name=\"created\" content=\"" + date + "\" />" +
+								"<head>" +
+								$"<title>{urlTitle}</title>" +
+								$"<meta name=\"created\" content=\"{GetDate()}\" />" +
                                 "</head>" +
                                 "<body>" +
-                                " <p> source: <a href=\"" + url+"\"> </p>"+
-                                "<img data-render-src=\"" + url + "\" alt=\"An important web page\"/>" +
-                                "<p> Copied using <a href=\"http://OneClip.com\">OneClip</a> on "+ DateTime.Now.ToShortDateString() +".</p>" +
+                                $" <p> source: <a href=\"{url}\"> </p>"+
+								"<img data-render-src=\"" + url + "\" alt=\"An important web page\"/>" +
+								$"<p> Copied using <a href=\"http://OneClip.com\">OneClip</a> on {DateTime.Now.ToShortDateString()}.</p>" +
+									"<ul>"+
+									"<li> List Item 1</li>"+
+									"<li> List Item 2 " +
+											"<ul><li>Nested List #2</li></ul>" +
+									"</li>"+
+									"<li> List Item 3</li>"+
+									"</ul>"+
                                 "</body>" +
                                 "</html>";
 
@@ -266,17 +251,32 @@ public class CreateExamples
             {
                 Content = new StringContent(simpleHtml, System.Text.Encoding.UTF8, "text/html")
             };
+		/*
+		var c =new RestClient(PagesEndPoint);
+		// c.Authenticator =  new OAuth2UriQueryParameterAuthenticator	 (this.AuthToken);
+		// Note: API only supports JSON return type.
+		//var m = client.SendAsync(createMessage);
+		//m.Wait();
+		//m.Result.Dump();
 
-            HttpResponseMessage response = await client.SendAsync(createMessage);
+		var createPageRequest = new RestRequest(Method.POST)
+					.AddHeader("Authorization", $"Bearer {this.AuthToken}")
+					.AddQueryParameter("sectionName",sectionName)
+					.AddHeader("Content-Type", "multipart/form-data; boundary=NewPart");
+		createMessage.Content.ReadAsStringAsync().Dump();
+		createPageRequest.AddBody(simpleHtml);
+		var r = c.Execute(createPageRequest);
+		return r;
+		*/
+		HttpResponseMessage response = await client.SendAsync(createMessage);
+		return await TranslateResponse(response);
+	}
 
-            return await TranslateResponse(response);
-        }
 
-
-  /// <summary>
-  /// Get date in ISO8601 format with local timezone offset
-  /// </summary>
-  /// <returns>Date as ISO8601 string</returns>
+	/// <summary>
+	/// Get date in ISO8601 format with local timezone offset
+	/// </summary>
+	/// <returns>Date as ISO8601 string</returns>
   private static string GetDate()
   {
       return DateTime.Now.ToString("o");
