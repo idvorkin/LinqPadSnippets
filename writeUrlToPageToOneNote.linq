@@ -40,54 +40,58 @@ void Main()
 	}
 	else
 	{
-		var auth = new LiveAuth(new Client());
+		var auth = new LiveAuth(new ClientIdentifier());
 		accessToken = auth.GetOAuthUserAccessToken();
 		File.WriteAllText(cacheAccessTokenFile, accessToken);
 		// XXX: Handle expired token.
 	}
 
-	var c = new CreateExamples(accessToken);
+	var c = new OneNoteSamples(accessToken);
 	var url = "http://www.bing.com";
 	var pageName = "Another Stab";
-	var response = c.CreatePageWithUrl2("OneClip-Pinned Urls",url,pageName);
+	var response = c.CreatePageFromURL("OneClip-Pinned Urls", url, pageName);
 	response.Dump();
 }
 
-internal class Client
+// I believe it is safe to list my secretid since it represents an app that I don't care about.
+// Someone could take my client id and use it for nefarious puproses and then tie it back to my account, but that's a big stretch.
+internal class ClientIdentifier
 {
-   public string ClientId = "0000000048130833";
-   public string Secret = "40lRVb3d17e0AsQh3n0oFMXr3q-nkjPw";
+	public string ClientId = "0000000048130833";
+	public string Secret = "40lRVb3d17e0AsQh3n0oFMXr3q-nkjPw";
 };
 
 class LiveAuth
 {
-   public LiveAuth(Client client)
-   {
-       this.client = client;
-   }
+	public LiveAuth(ClientIdentifier client)
+	{
+		this.client = client;
+	}
 
-   private readonly  Client client;
-   private static readonly string wlCallBackUri = "https://login.live.com/oauth20_desktop.srf";
-   private static readonly string accessTokenAPI = "https://login.live.com/oauth20_authorize.srf?client_id={1}&scope={0}&response_type=code&redirect_uri={2}";
-   private static Uri CreateClientAccessCodeUrl(IEnumerable<string> scopes, string cliend_id )
-   {
-       var url =  String.Format(accessTokenAPI, String.Join("%20", scopes), cliend_id, Uri.EscapeDataString(wlCallBackUri));
-       return new Uri(url);
-   }
+	private readonly ClientIdentifier client;
+	private static readonly string wlCallBackUri = "https://login.live.com/oauth20_desktop.srf";
 
-   private static IEnumerable<string> Scopes = new [] {"wl.signin", "Office.onenote_create"};
+	private static Uri CreateClientAccessCodeUrl(IEnumerable<string> scopes, string cliend_id)
+	{
 
-   private static Uri RunWebBrowserTillReturnedToUrl(Uri uri, Func<string, bool> stopCondition )
-   {
-       var window = new Form()
-       {
-           Width=440,
-           Height=600
-       };
+		string authorizeBase = "https://login.live.com/oauth20_authorize.srf";
+		string urlParms = $"client_id={cliend_id}&scope={String.Join("%20", scopes)}&response_type=code&redirect_uri={Uri.EscapeDataString(wlCallBackUri)}";
+		return new Uri($"{authorizeBase}?{urlParms}");
+	}
 
-       Uri url=null;
+	private static IEnumerable<string> Scopes = new[] { "wl.signin", "Office.onenote_create" };
 
-       Action<object, WebBrowserDocumentCompletedEventArgs> pageLoaded = (o, args) =>
+	private static Uri RunWebBrowserTillReturnedToUrl(Uri uri, Func<string, bool> stopCondition)
+	{
+		var window = new Form()
+		{
+			Width = 440,
+			Height = 600
+		};
+
+		Uri url = null;
+
+		Action<object, WebBrowserDocumentCompletedEventArgs> pageLoaded = (o, args) =>
        {
            url = args.Url;
            if (stopCondition(url.OriginalString))
@@ -139,7 +143,6 @@ class LiveAuth
        userAccessTokenParameters["client_secret"] = client.Secret;
        userAccessTokenParameters["redirect_uri"] = wlCallBackUri;
        userAccessTokenParameters["grant_type"] = "authorization_code";
-       // XX:X: 
        userAccessTokenParameters["code"] = GetOAuthClientAccessCode();
 
        var wc = new WebClient();
@@ -151,19 +154,102 @@ class LiveAuth
    }
 }
 
-public class CreateExamples
+
+/// <summary>
+/// Base class representing a simplified response from a service call 
+/// </summary>
+public abstract class StandardResponse
 {
-  private static readonly string PagesEndPoint = "https://www.onenote.com/api/v1.0/pages";
+	public HttpStatusCode StatusCode { get; set; }
 
-  private string DEFAULT_SECTION_NAME = "Quick Notes";
+	/// <summary>
+	/// Per call identifier that can be logged to diagnose issues with Microsoft support
+	/// </summary>
+	public string CorrelationId { get; set; }
 
-  private string AuthToken;
-  public CreateExamples(string authToken)
-  {
-      AuthToken = authToken;
-  }
+	public async static Task<StandardResponse> TranslateResponse(HttpResponseMessage response)
+	{
+		StandardResponse standardResponse;
+		if (response.StatusCode == HttpStatusCode.Created)
+		{
+			dynamic responseObject = JsonConvert.DeserializeObject(await response.Content.ReadAsStringAsync());
+			standardResponse = new CreateSuccessResponse
+			{
+				StatusCode = response.StatusCode,
+				OneNoteClientUrl = responseObject.links.oneNoteClientUrl.href,
+				OneNoteWebUrl = responseObject.links.oneNoteWebUrl.href
+			};
+		}
+		else
+		{
+			standardResponse = new StandardErrorResponse
+			{
+				StatusCode = response.StatusCode,
+				Message = await response.Content.ReadAsStringAsync()
+			};
+		}
 
-	
+		// Extract the correlation id.  Apps should log this if they want to collcet the data to diagnose failures with Microsoft support 
+		IEnumerable<string> correlationValues;
+		if (response.Headers.TryGetValues("X-CorrelationId", out correlationValues))
+		{
+			standardResponse.CorrelationId = correlationValues.FirstOrDefault();
+		}
+
+		return standardResponse;
+	}
+
+}
+
+/// <summary>
+/// Class representing standard error from the service
+/// </summary>
+public class StandardErrorResponse : StandardResponse
+{
+	/// <summary>
+	/// Error message - intended for developer, not end user
+	/// </summary>
+	public string Message { get; set; }
+
+	/// <summary>
+	/// Constructor
+	/// </summary>
+	public StandardErrorResponse()
+	{
+		this.StatusCode = HttpStatusCode.InternalServerError;
+	}
+}
+
+
+/// <summary>
+/// Class representing a successful create call from the service
+/// </summary>
+public class CreateSuccessResponse : StandardResponse
+{
+	/// <summary>
+	/// URL to launch OneNote rich client
+	/// </summary>
+	public string OneNoteClientUrl { get; set; }
+
+	/// <summary>
+	/// URL to launch OneNote web experience
+	/// </summary>
+	public string OneNoteWebUrl { get; set; }
+}
+
+
+public class OneNoteSamples
+{
+	private static readonly string PagesEndPoint = "https://www.onenote.com/api/v1.0/pages";
+
+	private string DEFAULT_SECTION_NAME = "Quick Notes";
+
+	private string AuthToken;
+	public OneNoteSamples(string authToken)
+	{
+		AuthToken = authToken;
+	}
+
 	public Uri GetPagesEndpoint(string specifiedSectionName)
 	{
 		string sectionNameToUse;
@@ -176,163 +262,43 @@ public class CreateExamples
 			sectionNameToUse = DEFAULT_SECTION_NAME;
 		}
 		return new Uri(PagesEndPoint + "/?sectionName=" + sectionNameToUse);
-  }
-
-  /// <summary>
-  /// Does the object currently have a valid authenticated state
-  /// </summary>
-  public bool IsAuthenticated
-  {
-      // get { return _authClient.Session != null && !string.IsNullOrEmpty(_authClient.Session.AccessToken); }
-      get { return true; }
-  }
-  /// <summary>
-  /// Base class representing a simplified response from a service call 
-  /// </summary>
-  public abstract class StandardResponse
-  {
-      public HttpStatusCode StatusCode { get; set; }
-
-      /// <summary>
-      /// Per call identifier that can be logged to diagnose issues with Microsoft support
-      /// </summary>
-      public string CorrelationId { get; set; }
-  }
-
-  /// <summary>
-  /// Class representing standard error from the service
-  /// </summary>
-  public class StandardErrorResponse : StandardResponse
-  {
-      /// <summary>
-      /// Error message - intended for developer, not end user
-      /// </summary>
-      public string Message { get; set; }
-
-      /// <summary>
-      /// Constructor
-      /// </summary>
-      public StandardErrorResponse()
-      {
-          this.StatusCode = HttpStatusCode.InternalServerError;
-      }
-  }
-
-  /// <summary>
-  /// Create a page with an image of a URL on it.
-  /// </summary>
-  /// <param name="debug">Run the code under the debugger</param>
-   async public Task<StandardResponse> CreatePageWithUrl2(string sectionName, string url, string urlTitle)
-       {
-     		var client = new HttpClient();
-			client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", this.AuthToken);
-
-            string simpleHtml = @"<html>" +
-								"<head>" +
-								$"<title>{urlTitle}</title>" +
-								$"<meta name=\"created\" content=\"{GetDate()}\" />" +
-                                "</head>" +
-                                "<body>" +
-                                $" <p> source: <a href=\"{url}\"> </p>"+
-								"<img data-render-src=\"" + url + "\" alt=\"An important web page\"/>" +
-								$"<p> Copied using <a href=\"http://OneClip.com\">OneClip</a> on {DateTime.Now.ToShortDateString()}.</p>" +
-									"<ul>"+
-									"<li> List Item 1</li>"+
-									"<li> List Item 2 " +
-											"<ul><li>Nested List #2</li></ul>" +
-									"</li>"+
-									"<li> List Item 3</li>"+
-									"</ul>"+
-                                "</body>" +
-                                "</html>";
-
-            var createMessage = new HttpRequestMessage(HttpMethod.Post, GetPagesEndpoint(sectionName))
-            {
-                Content = new StringContent(simpleHtml, System.Text.Encoding.UTF8, "text/html")
-            };
-		/*
-		var c =new RestClient(PagesEndPoint);
-		// c.Authenticator =  new OAuth2UriQueryParameterAuthenticator	 (this.AuthToken);
-		// Note: API only supports JSON return type.
-		//var m = client.SendAsync(createMessage);
-		//m.Wait();
-		//m.Result.Dump();
-
-		var createPageRequest = new RestRequest(Method.POST)
-					.AddHeader("Authorization", $"Bearer {this.AuthToken}")
-					.AddQueryParameter("sectionName",sectionName)
-					.AddHeader("Content-Type", "multipart/form-data; boundary=NewPart");
-		createMessage.Content.ReadAsStringAsync().Dump();
-		createPageRequest.AddBody(simpleHtml);
-		var r = c.Execute(createPageRequest);
-		return r;
-		*/
-		HttpResponseMessage response = await client.SendAsync(createMessage);
-		return await TranslateResponse(response);
 	}
 
-
 	/// <summary>
-	/// Get date in ISO8601 format with local timezone offset
+	/// Create a page with an image of a URL on it.
 	/// </summary>
-	/// <returns>Date as ISO8601 string</returns>
-  private static string GetDate()
-  {
-      return DateTime.Now.ToString("o");
-  }
+	/// <param name="debug">Run the code under the debugger</param>
+	async public Task<StandardResponse> CreatePageFromURL(string sectionName, string url, string urlTitle)
+	{
+		var client = new HttpClient();
+		client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+		client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", this.AuthToken);
 
-  /// <summary>
-  /// Class representing a successful create call from the service
-  /// </summary>
-  public class CreateSuccessResponse : StandardResponse
-  {
-      /// <summary>
-      /// URL to launch OneNote rich client
-      /// </summary>
-      public string OneNoteClientUrl { get; set; }
+		string simpleHtml = @"<html>" +
+							"<head>" +
+							$"<title>{urlTitle}</title>" +
+							$"<meta name=\"created\" content=\"{DateTime.Now.ToString("o")}\" />" +
+								"</head>" +
+								"<body>" +
+								$" <p> source: <a href='{url}'> </p>" +
+								$"<img data-render-src='{url}' alt=\"An important web page\"/>" +
+								$"<p> Copied using <a href=\"http://OneClip.com\">OneClip</a> on {DateTime.Now.ToShortDateString()}.</p>" +
+									"<ul>" +
+									"<li> List Item 1</li>" +
+									"<li> List Item 2 " +
+											"<li>Nested List #3</li>" +
+									"</li>" +
+									"<li> List Item 3</li>" +
+									"</ul>" +
+								"</body>" +
+								"</html>";
 
-      /// <summary>
-      /// URL to launch OneNote web experience
-      /// </summary>
-      public string OneNoteWebUrl { get; set; }
-  }
+		var createMessage = new HttpRequestMessage(HttpMethod.Post, GetPagesEndpoint(sectionName))
+		{
+			Content = new StringContent(simpleHtml, System.Text.Encoding.UTF8, "text/html")
+		};
 
-
-  /// <summary>
-  /// Convert the http response message into a simple structure suitable for apps to process
-  /// </summary>
-  /// <param name="response">The response to convert</param>
-  /// <returns>A simple rsponse</returns>
-  private async static Task<StandardResponse> TranslateResponse(HttpResponseMessage response)
-  {
-      StandardResponse standardResponse;
-      if (response.StatusCode == HttpStatusCode.Created)
-      {
-          dynamic responseObject = JsonConvert.DeserializeObject(await response.Content.ReadAsStringAsync());
-          standardResponse = new CreateSuccessResponse
-          {
-              StatusCode = response.StatusCode,
-              OneNoteClientUrl = responseObject.links.oneNoteClientUrl.href,
-              OneNoteWebUrl = responseObject.links.oneNoteWebUrl.href
-          };
-      }
-      else
-      {
-          standardResponse = new StandardErrorResponse
-          {
-              StatusCode = response.StatusCode,
-              Message = await response.Content.ReadAsStringAsync()
-          };
-      }
-
-      // Extract the correlation id.  Apps should log this if they want to collcet the data to diagnose failures with Microsoft support 
-      IEnumerable<string> correlationValues;
-      if (response.Headers.TryGetValues("X-CorrelationId", out correlationValues))
-      {
-          standardResponse.CorrelationId = correlationValues.FirstOrDefault();
-      }
-
-      return standardResponse;
-  }
+		HttpResponseMessage response = await client.SendAsync(createMessage);
+		return await StandardResponse.TranslateResponse(response);
+	}
 }
