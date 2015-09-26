@@ -36,20 +36,58 @@ class LineToken
 		return ret;		
 	}
 }
+
+Level BuildLevel(string[] lines)
+{
+	int lineIndex = 0;
+	var root = new Level();
+	BuildLevelRecurse(lines, ref lineIndex, 0,root);
+	return root;
+}
+void BuildLevelRecurse(string[] lines, ref int  lineIndex, int depth, Level parent)
+{
+	
+	while (lineIndex < lines.Count())
+	{
+		var token = LineToken.FromString(lines[lineIndex]);
+		var isTokenForMe  = depth == token.Depth;
+		var isTokenForMyChild= token.Depth > depth;
+		var isTokenForMyParent= token.Depth < depth;
+
+		if (token.IsEmpty())
+		{
+			lineIndex++;  // proceed to next line
+			continue;
+		}
+		if (isTokenForMe)
+		{
+			lineIndex++;  // proceed to next line
+			parent.Children.Add(Level.FromLineToken(token));
+		}
+		else if (isTokenForMyChild)
+		{
+			if (token.Depth != depth + 1)
+			{
+				token.Dump("Invalid Tree -> Double Indent not handled");		
+			}
+			var newParent = parent.Children.Count == 0 ? parent : parent.Children.Last();
+			BuildLevelRecurse(lines, ref lineIndex, depth+1, newParent);
+		}
+		else if (isTokenForMyParent) 
+		{
+			// all children processed.
+			break;
+		}
+	}
+	return;
+}
+
 void Main()
 {
 	var filename = @"c:\gits\igor2\WorkingSets\CompeteApps.wofl";
 	var lines = File.ReadAllLines(filename);
 	lines.Count().Dump();
-	var root = new Level();
-	var current = root;
-	foreach (var line in lines.Select(LineToken.FromString))
-	{
-		// hack at root.
-		if (line.IsEmpty()) continue;
-		if (line.Depth != 0 ) continue;
-		current.Children.Add(Level.FromLineToken(line));
-	}	
+	var root = BuildLevel(lines);
 	
 	root.Dump();
 }
