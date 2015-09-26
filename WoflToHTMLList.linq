@@ -1,13 +1,13 @@
 <Query Kind="Program" />
 
-class Level
+class TreeNode
 {
 	public string Line;
 	public string Meta;
-	public List<Level> Children = new List<Level>();
-	public static Level FromLineToken(LineToken line)
+	public List<TreeNode> Children = new List<TreeNode>();
+	public static TreeNode FromLineToken(LineToken line)
 	{
-		return new Level(){
+		return new TreeNode(){
 			Line = line.Line,
 			Meta = line.Meta
 		};
@@ -37,14 +37,14 @@ class LineToken
 	}
 }
 
-Level BuildLevel(string[] lines)
+TreeNode BuildTree(string[] lines)
 {
 	int lineIndex = 0;
-	var root = new Level();
-	BuildLevelRecurse(lines, ref lineIndex, 0,root);
+	var root = new TreeNode();
+	BuildTreeRecurse(lines, ref lineIndex, 0,root);
 	return root;
 }
-void BuildLevelRecurse(string[] lines, ref int  lineIndex, int depth, Level parent)
+void BuildTreeRecurse(string[] lines, ref int  lineIndex, int depth, TreeNode parent)
 {
 	
 	while (lineIndex < lines.Count())
@@ -62,7 +62,7 @@ void BuildLevelRecurse(string[] lines, ref int  lineIndex, int depth, Level pare
 		if (isTokenForMe)
 		{
 			lineIndex++;  // proceed to next line
-			parent.Children.Add(Level.FromLineToken(token));
+			parent.Children.Add(TreeNode.FromLineToken(token));
 		}
 		else if (isTokenForMyChild)
 		{
@@ -71,7 +71,7 @@ void BuildLevelRecurse(string[] lines, ref int  lineIndex, int depth, Level pare
 				token.Dump("Invalid Tree -> Double Indent not handled");		
 			}
 			var newParent = parent.Children.Count == 0 ? parent : parent.Children.Last();
-			BuildLevelRecurse(lines, ref lineIndex, depth+1, newParent);
+			BuildTreeRecurse(lines, ref lineIndex, depth+1, newParent);
 		}
 		else if (isTokenForMyParent) 
 		{
@@ -82,14 +82,37 @@ void BuildLevelRecurse(string[] lines, ref int  lineIndex, int depth, Level pare
 	return;
 }
 
+void TreeToHTML(TreeNode tree, ref string buffer)
+{
+	buffer += $"<li>{tree.Line}";
+	if (tree.Children.Count == 0)
+	{
+		buffer+="</li>\n";
+		return;
+	}
+	buffer +="<ul>\n";
+	foreach (var child in tree.Children)
+	{
+		TreeToHTML(child, ref buffer);
+	}
+	buffer += "</ul>\n";
+	buffer += "</li>\n";
+}
+
+
+
+
 void Main()
 {
 	var filename = @"c:\gits\igor2\WorkingSets\CompeteApps.wofl";
 	var lines = File.ReadAllLines(filename);
 	lines.Count().Dump();
-	var root = BuildLevel(lines);
+	var root = BuildTree(lines);
+	string s ="";
+	TreeToHTML(root,ref s);
+	s.Dump();
 	
-	root.Dump();
+	//root.Dump();
 }
 
 // Define other methods and classes here

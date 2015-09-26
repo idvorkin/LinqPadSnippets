@@ -29,28 +29,43 @@
   <Namespace>RestSharp.Authenticators</Namespace>
 </Query>
 
+
+
+static string NestedList = @"
+    <ul>
+      <li>First unordered list item</li>
+      <li>Second unordered list item<br>which contains another list
+        <ul>
+          <li>First (nested) ordered list item</li>
+          <li>Second (nested) ordered list item</li>
+        </ul>
+      </li>
+    </ul>
+";
+
 void Main()
 {
-	var cacheAccessTokenFile = Path.Combine(Path.GetTempPath(), $"saveOneNoteAccessToken_{Util.HostProcessID}");
-	cacheAccessTokenFile.Dump();
-	string accessToken = "";
-	if (File.Exists(cacheAccessTokenFile))
-    {
-		accessToken = File.ReadAllText(cacheAccessTokenFile);
-	}
-	else
-	{
-		var auth = new LiveAuth(new ClientIdentifier());
-		accessToken = auth.GetOAuthUserAccessToken();
-		File.WriteAllText(cacheAccessTokenFile, accessToken);
-		// XXX: Handle expired token.
-	}
+var cacheAccessTokenFile = Path.Combine(Path.GetTempPath(), $"saveOneNoteAccessToken_{Util.HostProcessID}");
+cacheAccessTokenFile.Dump();
+string accessToken = "";
+if (File.Exists(cacheAccessTokenFile))
+{
+accessToken = File.ReadAllText(cacheAccessTokenFile);
+}
+else
+{
+var auth = new LiveAuth(new ClientIdentifier());
+accessToken = auth.GetOAuthUserAccessToken();
+File.WriteAllText(cacheAccessTokenFile, accessToken);
+// XXX: Handle expired token.
+}
 
-	var c = new OneNoteSamples(accessToken);
-	var url = "http://www.bing.com";
-	var pageName = "Another Stab";
-	var response = c.CreatePageFromURL("OneClip-Pinned Urls", url, pageName);
-	response.Dump();
+var c = new OneNoteSamples(accessToken);
+var url = "http://www.bing.com";
+var pageName = "Another Stab";
+//var response = c.CreatePageFromURL("OneClip-Pinned Urls", url, pageName);
+var response = c.CreatePageFromHtmlBody("From String", UserQuery.NestedList);
+response.Dump();
 }
 
 // I believe it is safe to list my secretid since it represents an app that I don't care about.
@@ -92,66 +107,66 @@ class LiveAuth
 		Uri url = null;
 
 		Action<object, WebBrowserDocumentCompletedEventArgs> pageLoaded = (o, args) =>
-       {
-           url = args.Url;
-           if (stopCondition(url.OriginalString))
-           {
-               window.Close();
-           }
-       };
-       
-       var web = new WebBrowser()
-       {
-           Width = window.Width,
-           Height = window.Height,
-           Url = uri
-       };
-       web.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(pageLoaded);
-       window.Controls.Add(web);
-       window.ShowDialog();
-       return url;
-   }
+	   {
+		   url = args.Url;
+		   if (stopCondition(url.OriginalString))
+		   {
+			   window.Close();
+		   }
+	   };
 
-   private string GetOAuthClientAccessCode()
-   {
-       string code = "";
+		var web = new WebBrowser()
+		{
+			Width = window.Width,
+			Height = window.Height,
+			Url = uri
+		};
+		web.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(pageLoaded);
+		window.Controls.Add(web);
+		window.ShowDialog();
+		return url;
+	}
 
-       // The WebBrower must run on an stA thread.
-       var staThread = new Thread(() =>
-       {
-           var accessTokenUrl = CreateClientAccessCodeUrl(Scopes, client.ClientId);
-           var urlWithClientAccessCode  = RunWebBrowserTillReturnedToUrl(accessTokenUrl, (url) => (url.Contains("error") || url.Contains("code=")) );
-           if (urlWithClientAccessCode != null)
-           {
-               // XXX: This does nto handle errors.
-               var queryParams =
-                   Regex.Matches(urlWithClientAccessCode.Query, "([^?=&]+)(=([^&]*))?") .Cast<Match>() .ToDictionary(x => x.Groups[1].Value, x => x.Groups[3].Value);
-               code = queryParams["code"];
-           }
-       });
+	private string GetOAuthClientAccessCode()
+	{
+		string code = "";
 
-       staThread.SetApartmentState(ApartmentState.STA);
-       staThread.Start();
-       staThread.Join();
-       return code;
-   }
+		// The WebBrower must run on an stA thread.
+		var staThread = new Thread(() =>
+		{
+			var accessTokenUrl = CreateClientAccessCodeUrl(Scopes, client.ClientId);
+			var urlWithClientAccessCode = RunWebBrowserTillReturnedToUrl(accessTokenUrl, (url) => (url.Contains("error") || url.Contains("code=")));
+			if (urlWithClientAccessCode != null)
+			{
+				// XXX: This does nto handle errors.
+				var queryParams =
+					 Regex.Matches(urlWithClientAccessCode.Query, "([^?=&]+)(=([^&]*))?").Cast<Match>().ToDictionary(x => x.Groups[1].Value, x => x.Groups[3].Value);
+				code = queryParams["code"];
+			}
+		});
 
-   public String GetOAuthUserAccessToken()
-   {
-       var userAccessTokenParameters = new NameValueCollection();
-       userAccessTokenParameters["client_id"] = client.ClientId;
-       userAccessTokenParameters["client_secret"] = client.Secret;
-       userAccessTokenParameters["redirect_uri"] = wlCallBackUri;
-       userAccessTokenParameters["grant_type"] = "authorization_code";
-       userAccessTokenParameters["code"] = GetOAuthClientAccessCode();
+		staThread.SetApartmentState(ApartmentState.STA);
+		staThread.Start();
+		staThread.Join();
+		return code;
+	}
 
-       var wc = new WebClient();
-       var accessTokenUrl = "https://login.live.com/oauth20_token.srf";
-       var response = wc.UploadValues(accessTokenUrl, "POST", userAccessTokenParameters);
-       var reponseAsString = Encoding.Default.GetString(response);
-       var parsedToken = JToken.Parse(reponseAsString);
-       return parsedToken.Value<string>("access_token");
-   }
+	public String GetOAuthUserAccessToken()
+	{
+		var userAccessTokenParameters = new NameValueCollection();
+		userAccessTokenParameters["client_id"] = client.ClientId;
+		userAccessTokenParameters["client_secret"] = client.Secret;
+		userAccessTokenParameters["redirect_uri"] = wlCallBackUri;
+		userAccessTokenParameters["grant_type"] = "authorization_code";
+		userAccessTokenParameters["code"] = GetOAuthClientAccessCode();
+
+		var wc = new WebClient();
+		var accessTokenUrl = "https://login.live.com/oauth20_token.srf";
+		var response = wc.UploadValues(accessTokenUrl, "POST", userAccessTokenParameters);
+		var reponseAsString = Encoding.Default.GetString(response);
+		var parsedToken = JToken.Parse(reponseAsString);
+		return parsedToken.Value<string>("access_token");
+	}
 }
 
 
@@ -230,6 +245,7 @@ public class CreateSuccessResponse : StandardResponse
 	/// URL to launch OneNote rich client
 	/// </summary>
 	public string OneNoteClientUrl { get; set; }
+	
 
 	/// <summary>
 	/// URL to launch OneNote web experience
@@ -283,13 +299,30 @@ public class OneNoteSamples
 								$" <p> source: <a href='{url}'> </p>" +
 								$"<img data-render-src='{url}' alt=\"An important web page\"/>" +
 								$"<p> Copied using <a href=\"http://OneClip.com\">OneClip</a> on {DateTime.Now.ToShortDateString()}.</p>" +
-									"<ul>" +
-									"<li> List Item 1</li>" +
-									"<li> List Item 2 " +
-											"<li>Nested List #3</li>" +
-									"</li>" +
-									"<li> List Item 3</li>" +
-									"</ul>" +
+								"</body>" +
+								"</html>";
+
+		var createMessage = new HttpRequestMessage(HttpMethod.Post, GetPagesEndpoint(sectionName))
+		{
+			Content = new StringContent(simpleHtml, System.Text.Encoding.UTF8, "text/html")
+		};
+
+		HttpResponseMessage response = await client.SendAsync(createMessage);
+		return await StandardResponse.TranslateResponse(response);
+	}
+	async public Task<StandardResponse> CreatePageFromHtmlBody(string sectionName, string CreatePageFromHtmlBody)
+	{
+		var client = new HttpClient();
+		client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+		client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", this.AuthToken);
+
+		string simpleHtml = @"<html>" +
+							"<head>" +
+							$"<title>TBD</title>" +
+							$"<meta name=\"created\" content=\"{DateTime.Now.ToString("o")}\" />" +
+								"</head>" +
+								"<body>" +
+								UserQuery.NestedList +
 								"</body>" +
 								"</html>";
 
