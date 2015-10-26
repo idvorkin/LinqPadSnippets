@@ -15,10 +15,17 @@
   <Namespace>TestStack.White.InputDevices</Namespace>
 </Query>
 
+/* 
+White Docs  @ 
+  https://github.com/TestStack/TestStack.docs/blob/master/_source/White/Index.md
+Explore UI Automation w VisualUIAVerify from the Win 10 SDK @ 
+	C:\Program Files (x86)\Windows Kits\10\bin\x86\UIAVerify\VisualUIAVerifyNative.exe
+*/
+
 var cmdDotExeTitle = @"C:\Windows\System32\cmd.exe";
 var workConfig = new WorkConfiguration()
 {
-	ArchiveLocation=@"c:\temp\WhiteArchive", 
+	ArchiveLocation = @"c:\temp\WhiteArchive", 
 	Name="Unknown"
 };
 
