@@ -6,14 +6,15 @@
   <NuGetReference>Twilio</NuGetReference>
   <Namespace>RestSharp</Namespace>
   <Namespace>Newtonsoft.Json</Namespace>
+  <Namespace>Newtonsoft.Json.Linq</Namespace>
 </Query>
 
 // RestSharp Help: http://restsharp.org/
 // Ow.ly help:http://ow.ly/api-docs
 
 // +++ Secret setup
-dynamic secrets = JsonConvert.DeserializeObject(File.ReadAllText(@"c:/gits/igor2/secretBox.json"));
-var key = secrets.OwlyApiKey;
+var secrets = JObject.Parse(File.ReadAllText(@"c:/gits/igor2/secretBox.json"));
+var key = secrets["OwlyApiKey"];
 if (key == null) throw new InvalidDataException("Missing Key");
 // --- Secret setup
 

@@ -1,16 +1,17 @@
 <Query Kind="Statements">
   <NuGetReference>Newtonsoft.Json</NuGetReference>
   <NuGetReference>RestSharp</NuGetReference>
-  <Namespace>RestSharp</Namespace>
   <Namespace>Newtonsoft.Json</Namespace>
+  <Namespace>RestSharp</Namespace>
   <Namespace>System.Diagnostics</Namespace>
+  <Namespace>Newtonsoft.Json.Linq</Namespace>
 </Query>
 
 // Trigger by using the "Maker IFTTT Channel" -- https://ifttt.com/maker
 
 // +++ Secret setup
-dynamic secrets = JsonConvert.DeserializeObject(File.ReadAllText(@"c:/gits/igor2/secretBox.json"));
-var key = secrets.IFTTTMakerKey;
+var secrets = JObject.Parse(File.ReadAllText(@"c:/gits/igor2/secretBox.json"));
+var key = secrets["IFTTTMakerKey"];
 if (key == null) throw new InvalidDataException("Missing Key");
 // --- Secret setup
 
