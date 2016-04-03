@@ -6,10 +6,13 @@
   <Reference>&lt;RuntimeDirectory&gt;\System.Runtime.Serialization.Formatters.Soap.dll</Reference>
   <Reference>&lt;RuntimeDirectory&gt;\System.Security.dll</Reference>
   <Reference>&lt;RuntimeDirectory&gt;\System.Windows.Forms.dll</Reference>
+  <NuGetReference>CommonMark.NET</NuGetReference>
   <NuGetReference>Newtonsoft.Json</NuGetReference>
   <NuGetReference>RestSharp</NuGetReference>
   <Namespace>Newtonsoft.Json</Namespace>
   <Namespace>Newtonsoft.Json.Linq</Namespace>
+  <Namespace>RestSharp</Namespace>
+  <Namespace>RestSharp.Authenticators</Namespace>
   <Namespace>System</Namespace>
   <Namespace>System.Collections.Generic</Namespace>
   <Namespace>System.Collections.Specialized</Namespace>
@@ -25,11 +28,7 @@
   <Namespace>System.Threading</Namespace>
   <Namespace>System.Threading.Tasks</Namespace>
   <Namespace>System.Windows.Forms</Namespace>
-  <Namespace>RestSharp</Namespace>
-  <Namespace>RestSharp.Authenticators</Namespace>
 </Query>
-
-
 
 static string NestedList = @"
     <ul>
@@ -43,29 +42,54 @@ static string NestedList = @"
     </ul>
 ";
 
+static string NewTemplate = @"
+    <div style='position:absolute;left:48px;top:115px;width:652px'>
+      <h1 style='font-size:16pt;color:#1e4e79;margin-top:0pt;margin-bottom:0pt'>Three accomplishments @ Work</h1>
+      <table >
+        <tr>
+          <td style='width:278;'><span style='font-weight:bold'>Accomplishment</span></td>
+          <td ><span style='font-weight:bold'>Expected </span></td>
+          <td ><span style='font-weight:bold'>Actual</span></td>
+          <td style='width:212;'><span style='font-weight:bold'>Excuse</span></td>
+        </tr>
+	</table>
+";
+
 void Main()
 {
-var cacheAccessTokenFile = Path.Combine(Path.GetTempPath(), $"saveOneNoteAccessToken_{Util.HostProcessID}");
-cacheAccessTokenFile.Dump();
-string accessToken = "";
-if (File.Exists(cacheAccessTokenFile))
-{
-accessToken = File.ReadAllText(cacheAccessTokenFile);
-}
-else
-{
-var auth = new LiveAuth(new ClientIdentifier());
-accessToken = auth.GetOAuthUserAccessToken();
-File.WriteAllText(cacheAccessTokenFile, accessToken);
-// XXX: Handle expired token.
-}
+	var md = File.ReadAllText(@"c:\gits\idvorkin.github.io\_posts\2015-11-25-search-inside-yourself.md");
+	NestedList = CommonMark.CommonMarkConverter.Convert(md);
+	var cacheAccessTokenFile = Path.Combine(Path.GetTempPath(), $"saveOneNoteAccessToken_{Util.HostProcessID}");
+	cacheAccessTokenFile.Dump();
+	string accessToken = "";
+	if (File.Exists(cacheAccessTokenFile))
+	{
+		accessToken = File.ReadAllText(cacheAccessTokenFile);
+	}
+	else
+	{
+		var auth = new LiveAuth(new ClientIdentifier());
+		accessToken = auth.GetOAuthUserAccessToken();
+		File.WriteAllText(cacheAccessTokenFile, accessToken);
+		// XXX: Handle expired token.
+	}
+	
+	var c = new OneNoteSamples(accessToken);
+/*
+	var response = c.CreatePageFromHtmlBody("From MarkDown", UserQuery.NestedList);
+	var response = c.GetPages("3/31/2016");
+	response.Dump();
+	var client = c.GetAuthenticatedClient();
+*/
 
-var c = new OneNoteSamples(accessToken);
-var url = "http://www.bing.com";
-var pageName = "Another Stab";
-//var response = c.CreatePageFromURL("OneClip-Pinned Urls", url, pageName);
-var response = c.CreatePageFromHtmlBody("From String", UserQuery.NestedList);
-response.Dump();
+/*
+	var client = c.GetAuthenticatedClient();
+	var t = client.GetStringAsync("https://www.onenote.com/api/v1.0/me/notes/pages/0-aedc66b0713504be326f0894e8f70748!1-922579950926BF9E!1760/content");
+	t.Wait();
+*/
+	
+	
+	
 }
 
 // I believe it is safe to list my secretid since it represents an app that I don't care about.
@@ -284,11 +308,17 @@ public class OneNoteSamples
 	/// Create a page with an image of a URL on it.
 	/// </summary>
 	/// <param name="debug">Run the code under the debugger</param>
-	async public Task<StandardResponse> CreatePageFromURL(string sectionName, string url, string urlTitle)
+	public HttpClient GetAuthenticatedClient()
 	{
 		var client = new HttpClient();
 		client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 		client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", this.AuthToken);
+		return client;
+	}
+	
+	async public Task<StandardResponse> CreatePageFromURL(string sectionName, string url, string urlTitle)
+	{
+		var client = GetAuthenticatedClient();
 
 		string simpleHtml = @"<html>" +
 							"<head>" +
@@ -310,11 +340,10 @@ public class OneNoteSamples
 		HttpResponseMessage response = await client.SendAsync(createMessage);
 		return await StandardResponse.TranslateResponse(response);
 	}
+
 	async public Task<StandardResponse> CreatePageFromHtmlBody(string sectionName, string CreatePageFromHtmlBody)
 	{
-		var client = new HttpClient();
-		client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-		client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", this.AuthToken);
+		var client = GetAuthenticatedClient();
 
 		string simpleHtml = @"<html>" +
 							"<head>" +
@@ -326,11 +355,26 @@ public class OneNoteSamples
 								"</body>" +
 								"</html>";
 
+		return await CreatePageFromHtml(sectionName, simpleHtml);
+	}
+
+	async public Task<StandardResponse> CreatePageFromHtml(string sectionName, string htmlPage)
+	{
+		var client = GetAuthenticatedClient();
+
 		var createMessage = new HttpRequestMessage(HttpMethod.Post, GetPagesEndpoint(sectionName))
 		{
-			Content = new StringContent(simpleHtml, System.Text.Encoding.UTF8, "text/html")
+			Content = new StringContent(htmlPage, System.Text.Encoding.UTF8, "text/html")
 		};
 
+		HttpResponseMessage response = await client.SendAsync(createMessage);
+		return await StandardResponse.TranslateResponse(response);
+	}
+
+	async public Task<StandardResponse> GetPages(string title)
+	{
+		var client = GetAuthenticatedClient();
+		var createMessage = new HttpRequestMessage(HttpMethod.Get, $"{PagesEndPoint}?search={title}");
 		HttpResponseMessage response = await client.SendAsync(createMessage);
 		return await StandardResponse.TranslateResponse(response);
 	}
