@@ -65,13 +65,14 @@ IResponder myResponder = tfsBot.CreateResponder(
 		{
 			shortUrl="http://yaythis.me/1RGSLVW";
 		}
-		var response = $"*#{wi.Id}:* {wi.Fields["System.Title"]} {shortUrl}#id={wi.Id}";
-		response += $"\n  *Pri*: {wi.Fields["Microsoft.VSTS.Common.Priority"]} *State:* {wiState} *Assigned To*:{wi.Fields.GetValueOrDefault("System.AssignedTo")?? "Not yet assigned"}";
+		var response = $"*#{wi.Id}:* {wi.Fields["System.Title"]}";
+		response += $"\n  *Pri*: {wi.Fields["Microsoft.VSTS.Common.Priority"]} *State:* {wiState} *Assigned To*:{wi.Fields.GetValueOrDefault("System.AssignedTo")?? "Not yet assigned"}\n{shortUrl}#id={wi.Id}";
 		return response;
     }
 );
 
 tfsBot.Responders.Add(myResponder);
+tfsBot.Aliases = new[] { "bundletfsbot"};
 await tfsBot.Connect(slackKey.ToString());
 "Sleeping".Dump();
 Thread.Sleep(Timeout.Infinite);
