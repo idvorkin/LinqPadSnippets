@@ -5,11 +5,10 @@
   <Reference>&lt;RuntimeDirectory&gt;\System.Configuration.dll</Reference>
   <Namespace>System.DirectoryServices.AccountManagement</Namespace>
   <Namespace>System.DirectoryServices</Namespace>
+  <Namespace>System.Drawing</Namespace>
 </Query>
 
-
-	
-	static class Extensions{
+static class Extensions{
 	public static Dictionary<Principal, Dictionary<string,Object>> PropertyCache = new Dictionary<Principal, Dictionary<string,Object>>();
 	public static String GetProperty(this Principal principal, String property)
 	   {
@@ -49,8 +48,11 @@
 	{
 		return (string)((PropertyValueCollection) (principal.Properties()[property])).Value;
 	}
-	
+	public static Byte[] ByteProperty(this Principal principal, string property)
+	{
+		return (Byte[])((PropertyValueCollection)(principal.Properties()[property])).Value;
 	}
+}
 	class MSEmployee
 {
 	public MSEmployee(string name)
@@ -83,9 +85,22 @@
 	{	
 		get {return  me.StringProperty("title");}
 	}
-	public int Level {get {
-				var lowerTitle = Title.ToLower();
-				if (lowerTitle.Contains("ii")) return 2;
+	public Bitmap BitMap
+	{
+
+		get
+		{
+			var bytes = me.ByteProperty("thumbnailPhoto");
+			return new Bitmap(new MemoryStream(bytes));
+		}
+
+	}
+	public int Level
+	{
+		get
+		{
+			var lowerTitle = Title.ToLower();
+			if (lowerTitle.Contains("ii")) return 2;
 				if (lowerTitle.Contains("2")) return 2;
 				if (lowerTitle.Contains("senior")) return 3;
 				if (lowerTitle.Contains("principal")) return 4;
@@ -106,8 +121,8 @@
 }
 void Main()
 {
-	var erica = new MSEmployee("Andrew Shuman");
-	erica.Dump();
+	var employee = new MSEmployee("igord");
+	employee.Dump();
 }
 
 // Define other methods and classes here
