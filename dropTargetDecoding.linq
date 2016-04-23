@@ -11,11 +11,13 @@
   <Reference>&lt;RuntimeDirectory&gt;\WPF\UIAutomationProvider.dll</Reference>
   <Reference>&lt;RuntimeDirectory&gt;\WPF\UIAutomationTypes.dll</Reference>
   <Reference>&lt;RuntimeDirectory&gt;\WPF\WindowsBase.dll</Reference>
+  <NuGetReference>AngleSharp</NuGetReference>
   <NuGetReference>HtmlAgilityPack</NuGetReference>
+  <Namespace>HtmlAgilityPack</Namespace>
   <Namespace>System.Windows</Namespace>
   <Namespace>System.Windows.Controls</Namespace>
   <Namespace>System.Windows.Threading</Namespace>
-  <Namespace>HtmlAgilityPack</Namespace>
+  <Namespace>AngleSharp.Parser.Html</Namespace>
 </Query>
 
 /* 
@@ -30,46 +32,27 @@ Directions:
 
 var button = new Button { FontSize = 50, Content = "Drop OnTo me", AllowDrop=true } ;
 
-
-Func<string,IEnumerable<string>> HtmlToImages = (html) =>
-{
-	var htmlSnippet = new HtmlDocument();
-	htmlSnippet.LoadHtml(html);
-	var imageSrcAttribute = "src";
-	var nodes = htmlSnippet.DocumentNode.SelectNodes("//img");
-	if (nodes==null) return  new List<string>();
-	var images = nodes.Where(x => (x.Attributes[imageSrcAttribute] != null))
-	.Select(x => (x.Attributes[imageSrcAttribute].Value)).ToList();
-	return images;
-};
-
-
 Action<IDataObject> dump = (o) =>
 {
-	var isHTML = o.GetDataPresent("text/html");
-	if (isHTML)
-	{
-		var htmlStream = (MemoryStream)o.GetData("text/html");
-		var html = new StreamReader(htmlStream).ReadToEnd();
-		var images = HtmlToImages(html);
-		if (images.Any())
-		{
-			images.Select(i => Util.Image(i)).Dump();
-			return;
-		}
-	}
 	var isHtmlEdge = o.GetDataPresent("HTML Format");
+	isHtmlEdge.Dump("HTML");
 	if (isHtmlEdge)
 	{
-		var htmlS = (string)o.GetData("HTML Format");
-		var realHTML = htmlS.Split(new[] { "<!DOCTYPE HTML>" }, StringSplitOptions.RemoveEmptyEntries)[1];
-		var images = HtmlToImages(realHTML);
+		var htmlFormat = (string)o.GetData("HTML Format");
+		var startFragmentOffsetS = htmlFormat.Split('\n').SingleOrDefault(l => l.Contains("StartFragment:")).Split(':')[1].Dump();
+		var endFragmentOffsetS = htmlFormat.Split('\n').SingleOrDefault(l => l.Contains("EndFragment:")).Split(':')[1].Dump();
+		var startFragmentOffset = Int32.Parse(startFragmentOffsetS);
+		var endFragmentOffset = Int32.Parse(endFragmentOffsetS);
+		var fragment = new String((htmlFormat.ToCharArray().Skip(startFragmentOffset).Take(endFragmentOffset - startFragmentOffset + 1).ToArray()));
+		var parser = new HtmlParser();
+		var document = parser.Parse(fragment);
+		var images = document.QuerySelectorAll("img");
+		images.Select(x => Util.Image(x.Attributes["src"].Value)).Dump();
 		if (images.Any())
 		{
-			images.Select(i => Util.Image(i)).Dump();
 			return;
 		}
-	}
+    }
 
 	var isUrl = o.GetDataPresent("UniformResourceLocator");
 	if (isUrl)
