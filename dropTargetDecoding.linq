@@ -86,7 +86,11 @@ Action<IDataObject> dump = (o) =>
 		{
 			o.GetData(f, true).Dump(f);
 		}
-		catch { }
+		catch (Exception e)
+		{
+			
+			e.Dump($"Threw getting format for: {f}");
+		}
 
 	}
 };

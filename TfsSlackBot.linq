@@ -64,30 +64,49 @@ var getWI = new Func<string, WorkItem>(id=>
 	}
 });
 
-Bot tfsBot = new Bot();
-IResponder myResponder = tfsBot.CreateResponder(
-	(ResponseContext context) =>
-	{
-		return !(context.Message.User.IsSlackbot);
-	},
-	(ResponseContext context) =>
-	{
-		var message = context.Message.Text;
-		var channel = context.Message.ChatHub.Name;
-		var match = Regex.Match(message, "#(\\d+)");
-		if (!match.Success) return null;
-		var wi = getWI(match.Groups[1].Value);
-		if (wi == null) return null;
-		wi.Dump();
-		var wiState= wi.Fields["System.State"].ToString();
-		var response = $"*#{wi.Id}:* {wi.Fields["System.Title"]}";
-		response += $"\n  *Pri*: {wi.Fields["Microsoft.VSTS.Common.Priority"]} *State:* {wiState} *Assigned To*:{wi.Fields.GetValueOrDefault("System.AssignedTo")?? "Not yet assigned"}\n{idToVsoUrl(wi.Id.Value)}";
-		return response;
-    }
-);
 
-tfsBot.Responders.Add(myResponder);
-tfsBot.Aliases = new[] { "bundletfsbot"};
-await tfsBot.Connect(slackKey.ToString());
-"Sleeping".Dump();
-Thread.Sleep(Timeout.Infinite);
+while (true)
+{
+	Bot tfsBot = new Bot();
+	IResponder myResponder = tfsBot.CreateResponder(
+		(ResponseContext context) =>
+		{
+			return !(context.Message.User.IsSlackbot);
+		},
+		(ResponseContext context) =>
+		{
+			var message = context.Message.Text;
+			message.Dump("incoming");
+			var channel = context.Message.ChatHub.Name;
+			var matches = Regex.Matches(message, "#(\\d+)");
+			var totalResponses = new List<string>();
+			foreach (Match match in matches)
+			{
+				var parsed = match.Groups[1].Value;
+				parsed.Dump("Parsed ID");
+				var wi = getWI(parsed);
+				if (wi == null) continue;
+				wi.Dump();
+				var wiState = wi.Fields["System.State"].ToString();
+				var response = $"*#{wi.Id}:* {wi.Fields["System.Title"]}";
+				response += $"\n  *Pri*: {wi.Fields["Microsoft.VSTS.Common.Priority"]} *State:* {wiState} *Assigned To*:{wi.Fields.GetValueOrDefault("System.AssignedTo") ?? "Not yet assigned"}\n{idToVsoUrl(wi.Id.Value)}";
+				totalResponses.Add(response);
+			}
+			totalResponses.Dump();
+			var finalText = String.Join("\n-------\n", totalResponses);
+			finalText.Dump("finalText");
+			return finalText;
+		}
+	);
+
+	tfsBot.Responders.Add(myResponder);
+	tfsBot.Aliases = new[] { "bundletfsbot" };
+
+	await tfsBot.Connect(slackKey.ToString());
+	var sleepTime = TimeSpan.FromHours(1.0);
+	DateTime.Now.Dump($"Sleeping for {sleepTime.TotalHours} hours");
+	Thread.Sleep(sleepTime);
+	tfsBot.Disconnect();
+}
+
+//witClient.cre
