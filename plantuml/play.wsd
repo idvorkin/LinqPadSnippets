@@ -1,0 +1,24 @@
+@startuml 
+
+
+class Time {
+
+
+}
+    
+
+
+class People {
+    Get
+    Add
+    List
+}
+
+class Person{
+    AddToNext
+    NextMeetingPage
+    LastMeetingPage
+    CurrentMeeting
+}
+
+@enduml
