@@ -36,7 +36,7 @@ doc.LoadHtml(onenoteHTML);
 
 foreach (var s2e in styleToElementName)
 {
-	var styledElements = doc.DocumentNode.SelectNodes($"//span[@style='{s2e.Key}']");
+	var styledElements = doc.DocumentNode.SelectNodes($"//span[@style='{s2e.Key}']") ?? new HtmlNodeCollection(null);
 	foreach (var element in styledElements)
 	{
 		element.Name = s2e.Value;
