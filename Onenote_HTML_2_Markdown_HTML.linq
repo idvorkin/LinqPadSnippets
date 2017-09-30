@@ -28,7 +28,11 @@ var styleToElementName = new Dictionary<string, string>()
 //	{"text-decoration:underline","strike"},	
 };
 
-var onenoteHTML = @"<td style=''><span style='font-weight:bold'>Expected Bold </span></td>";
+//var onenoteHTML = File.ReadAllText(@"c:\temp\dailyTemplate.html");
+var fileBase = @"c:\temp\igor_olr";
+var onenoteHTML = File.ReadAllText($"{fileBase}.html");
+
+//var onenoteHTML = @"<td style=''><span style='font-weight:bold'>Expected Bold </span></td>";
 
 
 var doc = new HtmlAgilityPack.HtmlDocument();
@@ -46,3 +50,6 @@ foreach (var s2e in styleToElementName)
 
 onenoteHTML.Dump("Original");
 doc.DocumentNode.OuterHtml.Dump("Post");
+var onenoteMarkdown = new Html2Markdown.Converter().Convert(doc.DocumentNode.OuterHtml);
+onenoteMarkdown.Dump("Post Conversion");
+File.WriteAllText($"{fileBase}.md",onenoteMarkdown);
