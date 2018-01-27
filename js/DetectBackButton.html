@@ -1,0 +1,30 @@
+
+<!--
+
+    To speed up the back button, browsers cache the page, by hiding and then showing the page (bfcache). To see if the page is reloaded, you can 
+    use the following event: 
+
+    https://stackoverflow.com/questions/8788802/prevent-safari-loading-from-cache-when-back-button-is-clicked
+
+--> 
+
+<html>
+    <body> 
+        <h1> Back button detector.</h1>
+        <a href="http://www.google.com"> Hit Forward Button</a>
+        <div> Sadly this doesn't seem to work on all browsers. See an old compatibility matrix <a href="">latest status</a> </div>
+        <div> Navigated from: <span id='navigationMethod'> Didn't work </span> </div>
+        <script> 
+            function onPageShow(event)
+            {
+                console.log("External Function"+event.persisted);
+                console.dir(event)
+                f = document.getElementById( "navigationMethod" );
+                f.textContent = event.persisted ? "Back button": "Server page load ";
+            }
+            window.onpageshow = onPageShow; 
+        </script>
+
+    </body> 
+</html>
+
