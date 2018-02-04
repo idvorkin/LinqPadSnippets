@@ -16,27 +16,26 @@ matplotlib.style.use("ggplot")
 #############################################################################
 # Prepare data and import into a dataframe
 #############################################################################
-# 1) Export Data from healthkit (search internet) - unzip to a directory.
-# 2) Run code from - https://github.com/tdda/applehealthdata
-# 3) Update the script to point to your file name.
+# 1) Export Data from healthkit using [qs-access](https://itunes.apple.com/us/app/qs-access/id920297614?mt=8) app 
+# 2) Update the script to point to your file name.
 
-exported_and_trandformed_csv_file = "c:/temp/apple_health_export/BodyMass.csv"
+exported_and_trandformed_csv_file = "C:/Users/idvor/Downloads/weight.csv"
 df = pd.read_csv(exported_and_trandformed_csv_file)
 
 #############################################################################
 # Clean up the data.
 #############################################################################
 
-# make startDate a datetime.
-df["startDate"] = pd.to_datetime(df["startDate"])
+# make dataColumn a datetime.
+date_column_name="Start"
+df[date_column_name] = pd.to_datetime(df[date_column_name])
 
 # and then apply stats to reasonable time period.
 date_group_column_name = "month_year" 
-df[date_group_column_name]=df["startDate"].apply(lambda t:f"{t.month}-{t.year-2000}")
+df[date_group_column_name]=df[date_column_name].apply(lambda t:f"{t.month}-{t.year-2000}")
 
 # Normalize weight into lbs.
-weight_lbs_column_name = "weight_in_lbs"
-df[weight_lbs_column_name] = df.apply(lambda row: row.value * 2.2 if row.unit == "kg" else row.value, axis="columns")
+weight_lbs_column_name = "Weight (lb)"
 
 #############################################################################
 # Make pretty pictures.
