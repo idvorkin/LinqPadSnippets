@@ -20,27 +20,29 @@ print(f"Connected Success:{ring.is_connected}")
 doorbell = ring.doorbells[0]
 print(doorbell)
 
-library_limits_to_100=100
+library_limits_to_100 = 100
 es = [e for e in doorbell.history(limit=library_limits_to_100)]
+
 
 # create base path
 def make_directory_if_not_exists(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
+
 # Only works on basement computer for onedrive make better
 path_base = "/users/idvor/onedrive/ring/date/"
 
 for e in es:
     recording_id = e['id']
-    date = pendulum.instance(e["created_at"])
+    date = pendulum.instance(e["created_at"]).in_tz("America/Vancouver")
     date_path_kind = f"{path_base}{date.date()}/{e['kind']}/"
     make_directory_if_not_exists(date_path_kind)
-    date_path_kind_id = f"{date_path_kind}/{date.hour}-{date.minute}-{recording_id}.mp4"
-    print (date_path_kind_id)
+    date_path_kind_id = f"{date_path_kind}{date.hour}-{date.minute}-{recording_id}.mp4"
+    print(date_path_kind_id)
     if not Path(date_path_kind_id).is_file():
         # download write file.
-        print ("Downloading")
+        print("Downloading")
         doorbell.recording_download(recording_id, date_path_kind_id)
     else:
-        print ("Already Present")
+        print("Already Present")
