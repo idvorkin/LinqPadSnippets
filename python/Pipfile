@@ -1,3 +1,12 @@
+# pipenv install 
+# pipenv shell to use
+#
+# To use in code set virtual env interpretter in code E.g.:
+# http://bit.ly/2HLfkMc
+# C:\> pipenv --venv
+# vs_code_command_pallette> Select WorkSpace Interpreter
+#
+
 [[source]]
 
 url = "https://pypi.python.org/simple"
@@ -10,6 +19,17 @@ name = "pypi"
 ring-doorbell = "*"
 pendulum = "*"
 
+# pdf editor
+pdfrw = "*"
+
+# For VS Code editor
+#   - linter: prospector 
+#   - refactoring: rope 
+#   - autoformat: yapf
+##############################
+prospector = "*"
+rope = "*"
+yapf = "*"
 
 [dev-packages]
 
