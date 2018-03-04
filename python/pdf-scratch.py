@@ -21,6 +21,6 @@ def makeAllUp(pages):
     return result.render()
 
 inputPdf = "/temp/input.pdf"
-output = '/temp/output.pdf'
+outputPdf = '/temp/output.pdf'
 pages = PdfReader(inputPdf).pages
 PdfWriter(output).addpage(makeAllUp(pages)).write()
