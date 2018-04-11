@@ -7,6 +7,7 @@
 # vs_code_command_pallette> Select WorkSpace Interpreter
 #
 
+
 [[source]]
 
 url = "https://pypi.python.org/simple"
@@ -18,18 +19,13 @@ name = "pypi"
 
 ring-doorbell = "*"
 pendulum = "*"
-
-# pdf editor
 pdfrw = "*"
-
-# For VS Code editor
-#   - linter: prospector 
-#   - refactoring: rope 
-#   - autoformat: yapf
-##############################
+schedule = "*"
 prospector = "*"
 rope = "*"
 yapf = "*"
+ftfy = "*"
+
 
 [dev-packages]
 
