@@ -3,13 +3,14 @@
 # Ring is a subscription service, which only stores your videos for 90 days. This script will download all videos from ring into OneDrive
 # so they will be saved for ever.
 
-from ring_doorbell import Ring
 import json
-import pendulum
 import os
-from pathlib import Path
 import schedule
 import time
+import itertools
+import pendulum
+from pathlib import Path
+from ring_doorbell import Ring
 
 PASSWORD = "replaced_from_secret_box"
 with open('/gits/igor2/secretBox.json') as json_data:
@@ -17,38 +18,40 @@ with open('/gits/igor2/secretBox.json') as json_data:
     PASSWORD = SECRETS["RingAccountPassword"]
 
 ring = Ring('idvorkin@gmail.com', PASSWORD)
+doorbell = ring.doorbells[0]
 
+
+# Create base path
+def make_directory_if_not_exists(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+# Only works on basement computer for onedrive make better
+PATH_BASE = "/users/idvor/onedrive/ring/date/"
+
+def upload_ring_event(idx, ring_event):
+    recording_id = ring_event['id']
+    date = pendulum.instance(ring_event["created_at"]).in_tz("America/Vancouver")
+    date_path_kind = f"{PATH_BASE}{date.date()}/{ring_event['kind']}/"
+    make_directory_if_not_exists(date_path_kind)
+    date_path_kind_id = f"{date_path_kind}{date.hour}-{date.minute}-{recording_id}.mp4"
+    print(f"{idx}: {date_path_kind_id}")
+    if not Path(date_path_kind_id).is_file():
+        print("Downloading")
+        doorbell.recording_download(recording_id, date_path_kind_id)
+    else:
+        print("Already Present")
 
 def downloadAll():
     print(f"Connected Success:{ring.is_connected}")
-    doorbell = ring.doorbells[0]
-
-    library_limits_to_100 = 1000
-    es = [e for e in doorbell.history(limit=library_limits_to_100)]
-
-    # Create base path
-    def make_directory_if_not_exists(path):
-        if not os.path.exists(path):
-            os.makedirs(path)
-
-    # Only works on basement computer for onedrive make better
-    path_base = "/users/idvor/onedrive/ring/date/"
-    i=0
-
-    for e in es:
-        i=i+1
-        recording_id = e['id']
-        date = pendulum.instance(e["created_at"]).in_tz("America/Vancouver")
-        date_path_kind = f"{path_base}{date.date()}/{e['kind']}/"
-        make_directory_if_not_exists(date_path_kind)
-        date_path_kind_id = f"{date_path_kind}{date.hour}-{date.minute}-{recording_id}.mp4"
-        print(f"{i}: {date_path_kind_id}")
-        if not Path(date_path_kind_id).is_file():
-            # download write file.
-            print("Downloading")
-            doorbell.recording_download(recording_id, date_path_kind_id)
-        else:
-            print("Already Present")
+    oldest_id, idx = None, 0
+    while True:
+        print(f"Downloading in history {idx}, older_then={oldest_id}")
+        events = doorbell.history(older_than=oldest_id)
+        for event in events:
+            upload_ring_event(idx, event)
+            oldest_id = event["id"]
+            idx = idx + 1
 
 
 def printTimeStampAndDownload():
@@ -57,10 +60,12 @@ def printTimeStampAndDownload():
     print(f"Done @ {pendulum.now()}")
 
 
-nightlyExecutionTime = "2:00"
-print(f"Download scheduled every day @ {nightlyExecutionTime}")
-schedule.every().day.at(nightlyExecutionTime).do(printTimeStampAndDownload)
-printTimeStampAndDownload()
-while True:
-    schedule.run_pending()
-    time.sleep(1)
+def main():
+    nightly_execution_tame = "2:00"
+    print(f"Download scheduled every day @ {nightly_execution_tame}")
+    schedule.every().day.at(nightly_execution_tame).do(printTimeStampAndDownload)
+    printTimeStampAndDownload()
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+main()
