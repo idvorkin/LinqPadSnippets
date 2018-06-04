@@ -52,7 +52,8 @@ def downloadAll():
             upload_ring_event(idx, event)
             oldest_id = event["id"]
             idx = idx + 1
-
+        if not events:
+            break
 
 def printTimeStampAndDownload():
     print(f"Downloading @ {pendulum.now()}")
