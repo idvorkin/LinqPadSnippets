@@ -26,7 +26,8 @@ rope = "*"
 yapf = "*"
 ftfy = "*"
 pylinkvalidator = "*"
+ipython = "*"
+biplist = "*"
 
 
 [dev-packages]
-
