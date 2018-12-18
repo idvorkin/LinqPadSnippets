@@ -11,6 +11,8 @@ import itertools
 import pendulum
 from pathlib import Path
 from ring_doorbell import Ring
+import time
+import sys
 
 PASSWORD = "replaced_from_secret_box"
 with open('/gits/igor2/secretBox.json') as json_data:
@@ -26,12 +28,15 @@ def make_directory_if_not_exists(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
+
 # Only works on basement computer for onedrive make better
 PATH_BASE = "/users/idvor/onedrive/ring/date/"
 
+
 def upload_ring_event(idx, ring_event):
     recording_id = ring_event['id']
-    date = pendulum.instance(ring_event["created_at"]).in_tz("America/Vancouver")
+    date = pendulum.instance(
+        ring_event["created_at"]).in_tz("America/Vancouver")
     date_path_kind = f"{PATH_BASE}{date.date()}/{ring_event['kind']}/"
     make_directory_if_not_exists(date_path_kind)
     date_path_kind_id = f"{date_path_kind}{date.hour}-{date.minute}-{recording_id}.mp4"
@@ -41,6 +46,7 @@ def upload_ring_event(idx, ring_event):
         doorbell.recording_download(recording_id, date_path_kind_id)
     else:
         print("Already Present")
+
 
 def downloadAll():
     print(f"Connected Success:{ring.is_connected}")
@@ -55,10 +61,19 @@ def downloadAll():
         if not events:
             break
 
+
 def printTimeStampAndDownload():
-    print(f"Downloading @ {pendulum.now()}")
-    downloadAll()
-    print(f"Done @ {pendulum.now()}")
+    for retry in range(5):
+        try:
+            print(f"Downloading @ {pendulum.now()}")
+            downloadAll()
+            print(f"Done @ {pendulum.now()}")
+            return
+        except:
+            print(f"exception: \n {sys.exc_info()[0]}\n")
+            seconds = 10
+            print(f"sleeping {seconds} seconds before retry: {retry}")
+            time.sleep(seconds)
 
 
 def main():
@@ -69,4 +84,6 @@ def main():
     while True:
         schedule.run_pending()
         time.sleep(1)
+
+
 main()
