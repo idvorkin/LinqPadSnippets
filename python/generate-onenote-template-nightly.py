@@ -3,9 +3,10 @@ import os
 import schedule
 import time
 
+
 def generate_onenote_templates():
-    app = '\\gits\\onom\\OneNotePieMenu\\bin\\debug\\OneNotePieMenu'
-    system_call = f'{app} template'
+    app = "\\gits\\onom\\OneNotePieMenu\\bin\\debug\\OneNotePieMenu"
+    system_call = f"{app} template"
     print(f"Running @ {datetime.datetime.now()}: {system_call}")
     print("++")
     os.system(system_call)

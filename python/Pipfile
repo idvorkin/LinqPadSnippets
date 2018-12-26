@@ -7,16 +7,12 @@
 # vs_code_command_pallette> Select WorkSpace Interpreter
 #
 
-
 [[source]]
-
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
 [packages]
-
 ring-doorbell = "*"
 pendulum = "*"
 pdfrw = "*"
@@ -28,6 +24,10 @@ ftfy = "*"
 pylinkvalidator = "*"
 ipython = "*"
 biplist = "*"
-
+black = "*"
 
 [dev-packages]
+black = "*"
+
+[pipenv]
+allow_prereleases = true

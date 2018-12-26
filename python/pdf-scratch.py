@@ -22,7 +22,7 @@ def make_all_up(pages):
 
 def main():
     input_pdf = "/temp/input.pdf"
-    output_pdf = '/temp/output.pdf'
+    output_pdf = "/temp/output.pdf"
     pages = PdfReader(input_pdf).pages
     PdfWriter(output_pdf).addpage(make_all_up(pages)).write()
 

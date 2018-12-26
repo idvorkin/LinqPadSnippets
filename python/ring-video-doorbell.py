@@ -15,11 +15,11 @@ import time
 import sys
 
 PASSWORD = "replaced_from_secret_box"
-with open('/gits/igor2/secretBox.json') as json_data:
+with open("/gits/igor2/secretBox.json") as json_data:
     SECRETS = json.load(json_data)
     PASSWORD = SECRETS["RingAccountPassword"]
 
-ring = Ring('idvorkin@gmail.com', PASSWORD)
+ring = Ring("idvorkin@gmail.com", PASSWORD)
 doorbell = ring.doorbells[0]
 
 
@@ -34,9 +34,8 @@ PATH_BASE = "/users/idvor/onedrive/ring/date/"
 
 
 def upload_ring_event(idx, ring_event):
-    recording_id = ring_event['id']
-    date = pendulum.instance(
-        ring_event["created_at"]).in_tz("America/Vancouver")
+    recording_id = ring_event["id"]
+    date = pendulum.instance(ring_event["created_at"]).in_tz("America/Vancouver")
     date_path_kind = f"{PATH_BASE}{date.date()}/{ring_event['kind']}/"
     make_directory_if_not_exists(date_path_kind)
     date_path_kind_id = f"{date_path_kind}{date.hour}-{date.minute}-{recording_id}.mp4"

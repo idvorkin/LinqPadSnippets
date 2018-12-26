@@ -5,8 +5,12 @@ import sys
 from bs4 import BeautifulSoup
 
 start = time.time()
-urls = ["http://www.google.com", "http://www.techbargains.com",
-        "http://www.slashdot.org", "http://www.apple.com"]
+urls = [
+    "http://www.google.com",
+    "http://www.techbargains.com",
+    "http://www.slashdot.org",
+    "http://www.apple.com",
+]
 
 
 def url_to_title(url):
