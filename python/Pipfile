@@ -25,6 +25,7 @@ pylinkvalidator = "*"
 ipython = "*"
 biplist = "*"
 black = "*"
+beautifulsoup4 = "*"
 
 [dev-packages]
 black = "*"
