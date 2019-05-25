@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 import sys
 import hashlib
-import os
-from collections import OrderedDict as od
+from collections import OrderedDict
 
 
-def get_hashsums(file_path):
-    hash_sums = od()
+def get_hashsums(file_path: str) -> OrderedDict:
+    hash_sums: OrderedDict = OrderedDict()
     hash_sums["md5sum"] = hashlib.md5()
     hash_sums["sha1sum"] = hashlib.sha1()
     hash_sums["sha224sum"] = hashlib.sha224()
@@ -21,7 +20,7 @@ def get_hashsums(file_path):
                 hash_sums[hashsum].update(data_chunk)
             data_chunk = fd.read(1024)
 
-    results = od()
+    results: OrderedDict = OrderedDict()
     for key, value in hash_sums.items():
         results[key] = value.hexdigest()
     return results
@@ -30,7 +29,7 @@ def get_hashsums(file_path):
 def main():
     for path in sys.argv[1:]:
         print(">>> ", path)
-        for key, value in get_hashsums(path).items():
+        for key, value in get_hashsums(3).items():
             print(key, value)
 
 
