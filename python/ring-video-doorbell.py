@@ -33,9 +33,10 @@ def make_directory_if_not_exists(path):
 PATH_BASE = "/users/idvor/onedrive/ring/date/"
 
 
-def upload_ring_event(idx, ring_event):
+def upload_ring_event(idx, ring_event) -> None:
     recording_id = ring_event["id"]
-    date = pendulum.instance(ring_event["created_at"]).in_tz("America/Vancouver")
+    date = pendulum.instance(
+        ring_event["created_at"]).in_tz("America/Vancouver")
     date_path_kind = f"{PATH_BASE}{date.date()}/{ring_event['kind']}/"
     make_directory_if_not_exists(date_path_kind)
     date_path_kind_id = f"{date_path_kind}{date.hour}-{date.minute}-{recording_id}.mp4"
@@ -47,7 +48,7 @@ def upload_ring_event(idx, ring_event):
         print("Already Present")
 
 
-def downloadAll():
+def downloadAll() -> None:
     print(f"Connected Success:{ring.is_connected}")
     oldest_id, idx = None, 0
     while True:
@@ -61,7 +62,7 @@ def downloadAll():
             break
 
 
-def printTimeStampAndDownload():
+def printTimeStampAndDownload() -> None:
     for retry in range(5):
         try:
             print(f"Downloading @ {pendulum.now()}")
@@ -75,10 +76,11 @@ def printTimeStampAndDownload():
             time.sleep(seconds)
 
 
-def main():
+def main() -> None:
     nightly_execution_tame = "2:00"
     print(f"Download scheduled every day @ {nightly_execution_tame}")
-    schedule.every().day.at(nightly_execution_tame).do(printTimeStampAndDownload)
+    schedule.every().day.at(nightly_execution_tame).do(
+        printTimeStampAndDownload)
     printTimeStampAndDownload()
     while True:
         schedule.run_pending()
