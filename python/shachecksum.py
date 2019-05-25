@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 
 def get_hashsums(file_path: str) -> OrderedDict:
-    hash_sums: OrderedDict = OrderedDict()
+    hash_sums: OrderedDict[str, hashlib._Hash] = OrderedDict()
     hash_sums["md5sum"] = hashlib.md5()
     hash_sums["sha1sum"] = hashlib.sha1()
     hash_sums["sha224sum"] = hashlib.sha224()
@@ -20,7 +20,7 @@ def get_hashsums(file_path: str) -> OrderedDict:
                 hash_sums[hashsum].update(data_chunk)
             data_chunk = fd.read(1024)
 
-    results: OrderedDict = OrderedDict()
+    results: OrderedDict[str, str] = OrderedDict()
     for key, value in hash_sums.items():
         results[key] = value.hexdigest()
     return results
