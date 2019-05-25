@@ -97,6 +97,11 @@ DocProject/Help/html
 # Click-Once directory
 publish/
 
+
+# Python goop
+python/.mypy_cache/
+python/Pipefile.lock/
+
 # Publish Web Output
 *.Publish.xml
 
@@ -163,6 +168,7 @@ $RECYCLE.BIN/
 *.swp
 *.swo
 *~
+tags
 
 #NUnit test results
 TestResult.xml
