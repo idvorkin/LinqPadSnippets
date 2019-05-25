@@ -30,12 +30,12 @@ ipython = "*"
 biplist = "*"
 black = "*"
 beautifulsoup4 = "*"
+mypy = "*"
 
 
 [dev-packages]
 
 black = "*"
-mypy = "*"
 
 
 [pipenv]
