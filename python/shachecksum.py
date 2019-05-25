@@ -26,7 +26,7 @@ def get_hashsums(file_path: str) -> OrderedDict:
     return results
 
 
-def main():
+def main()-> None:
     for path in sys.argv[1:]:
         print(">>> ", path)
         for key, value in get_hashsums(3).items():
