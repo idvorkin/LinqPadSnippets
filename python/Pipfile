@@ -30,6 +30,8 @@ ipython = "*"
 biplist = "*"
 black = "*"
 beautifulsoup4 = "*"
+pyfiglet = "*"
+click = "*"
 
 
 [dev-packages]
