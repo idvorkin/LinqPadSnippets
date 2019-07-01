@@ -31,6 +31,8 @@ biplist = "*"
 black = "*"
 beautifulsoup4 = "*"
 mypy = "*"
+pyfiglet = "*"
+click = "*"
 
 
 [dev-packages]
