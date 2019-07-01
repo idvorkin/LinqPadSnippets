@@ -21,13 +21,15 @@ def printZachAge(dateoffset: date) -> None:
         dateoffset = datetime.strptime(dateoffset, "%x").date()
 
     figlet = Figlet(font="big")
-    print(figlet.renderText("Zach Age"))
-
     zachBirthday = date(2010, 4, 22)
     age = dateoffset - zachBirthday
-    ageInWeeks = age.days / 7
+    print(figlet.renderText("Zach Age"))
+    print(figlet.renderText(f"{int(round(age.days/7))} weeks"))
 
-    print(f"Age in weeks:{round(ageInWeeks):d}")
+    print(f"Age in weeks:{round(age.days/7):d}")
+    print(f"Age in years:{round(age.days/365):d}")
+    print(f"Age in months:{round(age.days/30):d}")
+    print(f"Age in days:{round(age.days/1):d}")
 
 
 if __name__ == "__main__":
