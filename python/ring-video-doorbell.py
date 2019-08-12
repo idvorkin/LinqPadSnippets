@@ -77,7 +77,7 @@ def printTimeStampAndDownload() -> None:
 
 
 def main() -> None:
-    nightly_execution_tame = "2:00"
+    nightly_execution_tame = "02:00"
     print(f"Download scheduled every day @ {nightly_execution_tame}")
     schedule.every().day.at(nightly_execution_tame).do(
         printTimeStampAndDownload)

@@ -13,7 +13,7 @@ def generate_onenote_templates():
     print("--")
 
 
-NIGHTLY_EXECUTION_TIME = "2:00"
+NIGHTLY_EXECUTION_TIME = "02:00"
 print(f"Generation scheduled every day @ {NIGHTLY_EXECUTION_TIME}")
 schedule.every().day.at(NIGHTLY_EXECUTION_TIME).do(generate_onenote_templates)
 generate_onenote_templates()
