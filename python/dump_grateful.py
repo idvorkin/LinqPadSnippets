@@ -2,6 +2,7 @@ from collections import defaultdict, namedtuple
 import re
 import glob
 import os
+import click
 
 
 # Open all md files
@@ -49,7 +50,7 @@ categories = "up early;magic;up early;diet;essential;appreciate;daily;zach;ameli
 def groupGrateful(reasons_to_be_grateful):
     grateful_by_reason = defaultdict(list)
 
-    for reason in all_reasons_to_be_grateful:
+    for reason in reasons_to_be_grateful:
         if reason == "":
             continue
 
@@ -67,21 +68,41 @@ def groupGrateful(reasons_to_be_grateful):
     return l3
 
 
+def printGrateful(grouped):
+    for l in grouped:
+        print(f"{l[0]}")
+        isList = len(l[1]) > 1
+        isCategory = any([c in l for c in categories])
+
+        if isList or isCategory:
+            for m in l[1]:
+                print(f"   {m}")
+
+
 # extractGratefulReason("a. hello world")
 # extractGratefulFromDailyFile("/home/idvorkin/gits/igor2/750words/2019-11-04.md"
 # r = dumpAll(os.path.expanduser("~/gits/igor2/750words/*md")
 # all_reasons_to_be_grateful = extractGratefulFromGlob (os.path.expanduser("~/gits/igor2/750words_new_archive/*md"))
-all_reasons_to_be_grateful = extractGratefulFromGlob(
-    os.path.expanduser("~/gits/igor2/750words/*md")
-)
-grouped = groupGrateful(all_reasons_to_be_grateful)
+@click.command()
+@click.argument("glob", default="~/gits/igor2/750words/*md")
+def dumpGlob(glob):
 
-# TODO: Consider adding a date index.
-for l in grouped:
-    print(f"{l[0]}")
-    isList = len(l[1]) > 1
-    isCategory = any([c in l for c in categories])
+    all_reasons_to_be_grateful = extractGratefulFromGlob(os.path.expanduser(glob))
+    grouped = groupGrateful(all_reasons_to_be_grateful)
+    printGrateful(grouped)
 
-    if isList or isCategory:
-        for m in l[1]:
-            print(f"   {m}")
+
+@click.command()
+@click.option("--archive/--noarchive", default="False")
+def dumpDefaults(archive):
+    glob = (
+        "~/gits/igor2/750words/*md" if not archive
+        else "~/gits/igor2/750words_new_archive/*md"
+    )
+
+    all_reasons_to_be_grateful = extractGratefulFromGlob(os.path.expanduser(glob))
+    grouped = groupGrateful(all_reasons_to_be_grateful)
+    printGrateful(grouped)
+
+if __name__ == "__main__":
+    dumpDefaults()
