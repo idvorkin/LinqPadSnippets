@@ -31,31 +31,47 @@ def extractGratefulFromDailyFile(f):
     return reasonsGrateful
 
 
-def dumpAll(directory):
+def extractGratefulFromGlob(directory):
     results = []
     for f in glob.glob(directory):
         results += extractGratefulFromDailyFile(f)
     return results
 
 
+def groupGrateful(reasons_to_be_grateful):
+    grateful_by_reason = defaultdict(list)
+    categories = "up early;magic;up early;diet;essential;appreciate;daily;zach;amelia;tori ".split(';')
+
+    for reason in all_reasons_to_be_grateful:
+        if reason == "":
+            continue
+
+        normalized_reason = reason.lower()
+        key = normalized_reason
+
+        # if it's a category then
+        for category in categories:
+            if category in normalized_reason:
+                key = category
+                break
+
+        grateful_by_reason[key] += [reason]
+
+    l2 = [(k, grateful_by_reason[k]) for k in grateful_by_reason]
+    l3 = sorted(l2, key=lambda x: len(x[1]))
+    return l3
+
 # extractGratefulReason("a. hello world")
 # extractGratefulFromDailyFile("/home/idvorkin/gits/igor2/750words/2019-11-04.md"
-# r = dumpAll(os.path.expanduser("~/gits/igor2/750words/*md"))
-all_reasons_to_be_grateful = dumpAll(os.path.expanduser("~/gits/igor2/750words_new_archive/*md"))
+# r = dumpAll(os.path.expanduser("~/gits/igor2/750words/*md")
+#all_reasons_to_be_grateful = extractGratefulFromGlob (os.path.expanduser("~/gits/igor2/750words_new_archive/*md"))
+all_reasons_to_be_grateful = extractGratefulFromGlob (os.path.expanduser("~/gits/igor2/750words/*md"))
+grouped = groupGrateful(all_reasons_to_be_grateful)
+
 # TODO: Consider adding a date index.
-grateful = defaultdict(int)
-
-groupings = "up early;magic;up early;diet;essential;appreciate;daily".split(';')
-for l in all_reasons_to_be_grateful:
-    l = l.lower()
-    for group in groupings:
-        if group in l:
-            grateful[group] +=1
-            break
-    else:
-        grateful[l.lower()] += 1
-
-l2 = [(grateful[k], k) for k in grateful]
-l3 = sorted(l2, key=lambda x: x[0])
-for l in l3:
-    print(f"{l[0]}:{l[1]}")
+for l in grouped:
+    print(f"{l[0]}")
+    isList = len(l[1]) > 1
+    if isList:
+        for m in l[1]:
+            print(f"   {m}")
