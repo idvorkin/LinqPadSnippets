@@ -3,7 +3,7 @@ import re
 import glob
 import os
 import click
-
+from datetime import datetime, timedelta
 
 # Open all md files
 # read till hit line grateful
@@ -11,35 +11,45 @@ import click
 # copy all lines till hit  ## affirmations
 
 
-def extractGratefulFromList(l):
+def extractListItem(l):
     matches = re.findall("\\d\\.\\s*(.*)", l)
     return matches
 
 
-def extractGratefulFromDailyFile(f):
-    startMark = "## Grateful for:"
-    isInGratefulList = False
-    endMark = "## Day awesome if:"
-    reasonsGrateful = []
+def isSectionStart(l, section):
+    return re.match(f"^##.*{section}.*", l) != None
+
+
+def extractListInSection(f, section):
     fp = open(f)
-    for i, l in enumerate(fp.readlines()):
-        if startMark in l:
-            isInGratefulList = True
+    inSection = False
+    for l in fp.readlines():
+        if inSection:
+            isSectionEnd = l.startswith("#")
+            if isSectionEnd:
+                return
+
+        if isSectionStart(l, section):
+            inSection = True
+
+        if not inSection:
             continue
-        if endMark in l:
-            isInGratefulList = False
-            continue
-        if not isInGratefulList:
-            continue
-        reasonsGrateful += extractGratefulFromList(l)
-    return reasonsGrateful
+
+        yield from extractListItem(l)
+
+    return
 
 
-def extractGratefulFromGlob(directory):
-    results = []
-    for f in glob.glob(directory):
-        results += extractGratefulFromDailyFile(f)
-    return results
+def extractListFromGlob(directory, section):
+    files = [f for f in glob.glob(directory)]
+    yield from extractListFromFiles(files, section)
+
+
+def extractListFromFiles(files, section):
+    for f in files:
+        if not os.path.exists(f):
+            continue
+        yield from extractListInSection(f, section)
 
 
 categories = "up early;magic;up early;diet;essential;appreciate;daily;zach;amelia;tori ".split(
@@ -80,29 +90,50 @@ def printGrateful(grouped):
 
 
 # extractGratefulReason("a. hello world")
-# extractGratefulFromDailyFile("/home/idvorkin/gits/igor2/750words/2019-11-04.md"
+# m = list(extractListInSection("/home/idvorkin/gits/igor2/750words/2019-11-04.md", "Grateful"))
+# print(m)
 # r = dumpAll(os.path.expanduser("~/gits/igor2/750words/*md")
 # all_reasons_to_be_grateful = extractGratefulFromGlob (os.path.expanduser("~/gits/igor2/750words_new_archive/*md"))
+
+
 @click.command()
 @click.argument("glob", default="~/gits/igor2/750words/*md")
-def dumpGlob(glob):
-
-    all_reasons_to_be_grateful = extractGratefulFromGlob(os.path.expanduser(glob))
+@click.argument("thelist", default="")
+def dumpGlob(glob, thelist):
+    # START_GRATEFUL = "## Grateful for:"
+    all_reasons_to_be_grateful = extractListFromGlob(os.path.expanduser(glob), thelist)
     grouped = groupGrateful(all_reasons_to_be_grateful)
     printGrateful(grouped)
 
 
 @click.command()
 @click.option("--archive/--noarchive", default="False")
-def dumpDefaults(archive):
+@click.option("--grateful/--yesterday", default="True")
+@click.option("--last7/--nolast7", default="False")
+def dumpDefaults(archive, grateful, last7):
     glob = (
-        "~/gits/igor2/750words/*md" if not archive
+        "~/gits/igor2/750words/*md"
+        if not archive
         else "~/gits/igor2/750words_new_archive/*md"
     )
 
-    all_reasons_to_be_grateful = extractGratefulFromGlob(os.path.expanduser(glob))
-    grouped = groupGrateful(all_reasons_to_be_grateful)
+    section = "Grateful" if grateful else "Yesterday"
+
+    sectionSummary = []
+    if last7:
+        files = [
+            os.path.expanduser(
+                f"~/gits/igor2/750words/{(datetime.now()-timedelta(days=d)).strftime('%Y-%m-%d')}.md"
+            )
+            for d in range(7)
+        ]
+        sectionSummary = extractListFromFiles(files, section)
+    else:
+        sectionSummary = extractListFromGlob(os.path.expanduser(glob), section)
+
+    grouped = groupGrateful(sectionSummary)
     printGrateful(grouped)
+
 
 if __name__ == "__main__":
     dumpDefaults()
