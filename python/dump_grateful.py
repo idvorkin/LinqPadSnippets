@@ -1,3 +1,4 @@
+#!python3
 from collections import defaultdict, namedtuple
 import re
 import glob
@@ -108,7 +109,7 @@ def dumpGlob(glob, thelist):
 @click.command()
 @click.argument("days", default=0)  # days takes precedent over archive/noarchive
 @click.option("--archive/--noarchive", default="False")
-@click.option("--grateful/--yesterday", default="True")
+@click.option("--grateful/--awesome", default="True")
 def dumpDefaults(archive, grateful, days):
     section = "Grateful" if grateful else "Yesterday"
 
