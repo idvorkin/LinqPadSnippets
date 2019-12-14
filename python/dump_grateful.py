@@ -125,7 +125,7 @@ def awesome(days):
     return dumpSectionDefaultDirectory("Yesterday", days)
 
 @journal.command()
-@click.argument("days", default=7)  # days takes precedent over archive/noarchive
+@click.argument("days", default=2)  # days takes precedent over archive/noarchive
 def todo(days):
     """ Yesterday's Todos"""
     return dumpSectionDefaultDirectory("if", days)
