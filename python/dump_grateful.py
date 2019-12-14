@@ -97,24 +97,46 @@ def printGrateful(grouped):
 # all_reasons_to_be_grateful = extractGratefulFromGlob (os.path.expanduser("~/gits/igor2/750words_new_archive/*md"))
 
 
-@click.command()
-@click.argument("glob", default="~/gits/igor2/750words/*md")
-@click.argument("thelist", default="")
+# @click.command()
+# @click.argument("glob", default="~/gits/igor2/750words/*md")
+# @click.argument("thelist", default="")
 def dumpGlob(glob, thelist):
     all_reasons_to_be_grateful = extractListFromGlob(os.path.expanduser(glob), thelist)
     grouped = groupGrateful(all_reasons_to_be_grateful)
     printGrateful(grouped)
 
 
-@click.command()
-@click.argument("days", default=0)  # days takes precedent over archive/noarchive
-@click.option("--archive/--noarchive", default="False")
-@click.option("--grateful/--awesome", default="True")
-def dumpDefaults(archive, grateful, days):
-    section = "Grateful" if grateful else "Yesterday"
 
-    print(f"----- Section:{section}, days={days}, archive={archive} ----- ")
 
+@click.group()
+def journal():
+    pass
+
+@journal.command()
+@click.argument("days", default=7)  # days takes precedent over archive/noarchive
+def grateful(days):
+    """ What made me grateful """
+    return dumpSectionDefaultDirectory("Grateful", days)
+
+@journal.command()
+@click.argument("days", default=7)  # days takes precedent over archive/noarchive
+def awesome(days):
+    """ What made yesterday awesome """
+    return dumpSectionDefaultDirectory("Yesterday", days)
+
+@journal.command()
+@click.argument("days", default=7)  # days takes precedent over archive/noarchive
+def todo(days):
+    """ Yesterday's Todos"""
+    return dumpSectionDefaultDirectory("if", days)
+
+# section
+def dumpSectionDefaultDirectory(section, days):
+    assert section in   "Grateful Yesterday if".split()
+
+    print(f"----- Section:{section}, days={days} ----- ")
+
+    # Dump both archive and latest.
     listItem = []
     if days > 0:
         files = [
@@ -123,18 +145,17 @@ def dumpDefaults(archive, grateful, days):
             )
             for d in range(days)
         ]
+        files+=[
+            os.path.expanduser(
+                f"~/gits/igor2/750words_archive/{(datetime.now()-timedelta(days=d)).strftime('%Y-%m-%d')}.md"
+            )
+            for d in range(days)
+        ]
         listItem = extractListFromFiles(files, section)
-    else:
-        glob = (
-            "~/gits/igor2/750words/*md"
-            if not archive
-            else "~/gits/igor2/750words_new_archive/*md"
-        )
-        listItem = extractListFromGlob(os.path.expanduser(glob), section)
 
     grouped = groupGrateful(listItem)
     printGrateful(grouped)
 
 
 if __name__ == "__main__":
-    dumpDefaults()
+    journal()
