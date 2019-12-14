@@ -40,7 +40,6 @@ def extractListInSection(f, section):
 
     return
 
-
 def extractListFromGlob(directory, section):
     files = [f for f in glob.glob(directory)]
     yield from extractListFromFiles(files, section)
@@ -147,7 +146,7 @@ def dumpSectionDefaultDirectory(section, days):
         ]
         files+=[
             os.path.expanduser(
-                f"~/gits/igor2/750words_archive/{(datetime.now()-timedelta(days=d)).strftime('%Y-%m-%d')}.md"
+                f"~/gits/igor2/750words_new_archive/{(datetime.now()-timedelta(days=d)).strftime('%Y-%m-%d')}.md"
             )
             for d in range(days)
         ]
