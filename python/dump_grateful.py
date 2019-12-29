@@ -14,11 +14,12 @@ from datetime import datetime, timedelta
 
 def extractListItem(l):
     matches = re.findall("\\d\\.\\s*(.*)", l)
+    matches += re.findall("-\\s*(.*)", l)
     return matches
 
 
 def isSectionStart(l, section):
-    return re.match(f"^##.*{section}.*", l) != None
+    return re.match(f"^##.*{section}.*", l) is not None
 
 
 def extractListInSection(f, section):
@@ -39,6 +40,7 @@ def extractListInSection(f, section):
         yield from extractListItem(l)
 
     return
+
 
 def extractListFromGlob(directory, section):
     files = [f for f in glob.glob(directory)]
@@ -105,11 +107,10 @@ def dumpGlob(glob, thelist):
     printGrateful(grouped)
 
 
-
-
 @click.group()
 def journal():
     pass
+
 
 @journal.command()
 @click.argument("days", default=7)  # days takes precedent over archive/noarchive
@@ -117,11 +118,13 @@ def grateful(days):
     """ What made me grateful """
     return dumpSectionDefaultDirectory("Grateful", days)
 
+
 @journal.command()
 @click.argument("days", default=7)  # days takes precedent over archive/noarchive
 def awesome(days):
     """ What made yesterday awesome """
     return dumpSectionDefaultDirectory("Yesterday", days)
+
 
 @journal.command()
 @click.argument("days", default=2)  # days takes precedent over archive/noarchive
@@ -129,27 +132,47 @@ def todo(days):
     """ Yesterday's Todos"""
     return dumpSectionDefaultDirectory("if", days)
 
+
+@journal.command()
+@click.argument("weeks", default=4)
+@click.argument("section", default="Moments")
+def week(weeks, section):
+    """ Section of choice for count weeks"""
+    return dumpSectionDefaultDirectory(section, weeks, day=False)
+
+
 # section
-def dumpSectionDefaultDirectory(section, days):
-    assert section in   "Grateful Yesterday if".split()
+def dumpSectionDefaultDirectory(section, days, day=True):
+    # assert section in   "Grateful Yesterday if".split()
 
     print(f"----- Section:{section}, days={days} ----- ")
 
     # Dump both archive and latest.
     listItem = []
-    if days > 0:
+    if day:
         files = [
             os.path.expanduser(
                 f"~/gits/igor2/750words/{(datetime.now()-timedelta(days=d)).strftime('%Y-%m-%d')}.md"
             )
             for d in range(days)
         ]
-        files+=[
+        files += [
             os.path.expanduser(
                 f"~/gits/igor2/750words_new_archive/{(datetime.now()-timedelta(days=d)).strftime('%Y-%m-%d')}.md"
             )
             for d in range(days)
         ]
+        listItem = extractListFromFiles(files, section)
+    else:
+        # User requesting weeks.
+        # Instead of figuring out sundays, just add 'em up.
+        files = [
+            os.path.expanduser(
+                f"~/gits/igor2/week_report/{(datetime.now()-timedelta(days=d)).strftime('%Y-%m-%d')}.md"
+            )
+            for d in range(days * 8)
+        ]
+        # print (files)
         listItem = extractListFromFiles(files, section)
 
     grouped = groupGrateful(listItem)
