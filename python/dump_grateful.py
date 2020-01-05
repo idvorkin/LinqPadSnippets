@@ -85,7 +85,7 @@ def makeCategoryMap():
 
 
 
-    print (category_map_i)
+    #print (category_map_i)
     return category_map_i
 
 
