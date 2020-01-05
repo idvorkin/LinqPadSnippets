@@ -59,17 +59,32 @@ def makeCategoryMap():
     category_map_data= {"wake":"up early;wake;",
                 "magic":"magic;card;palm",
                 "diet":"diet;eating;juice;juicing;weight",
-                "bike":"bike;biking;biked",
-                "interview":"interview;interviews",
-                "meditate":"meditate;meditated;meditating",
-                "exercise": "gym;exercise"
+                "exercise": "gym;exercise;ring"
                 }
     # todo figure out how to stem
-    categories_flat = "anxiety;essential;appreciate;daily;zach;amelia;tori;offer".split(";")
+    categories_flat = "anxiety;essential;appreciate;daily;zach;amelia;tori;offer;bike;meditate;interview".split(";")
 
     for (category,words) in category_map_data.items():
         category_map_i[category] = words.split(";")
     for c in categories_flat: category_map_i[c] = [c]
+
+    # do some super stemming - probably more effiient way
+    suffixes="ed;s;ing".split(";")
+    #print(suffixes)
+    for (c,words) in category_map_i.items():
+        words = words[:] # force a copy
+        #print (words)
+        for w in words:
+            if w == " " or w == "":continue
+            for s in suffixes:
+                #print (f"W:{w},s:{s}")
+                with_stem = w+s
+                #print(f"with_stem:{with_stem}")
+                category_map_i[c]+=[with_stem]
+        #print(category_map_i[c])
+
+
+
     return category_map_i
 
 
