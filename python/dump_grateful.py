@@ -56,7 +56,7 @@ def extractListFromFiles(files, section):
 
 def makeCategoryMap():
     category_map_i = {}
-    category_map_data= {"wake":"up early;wake;",
+    category_map_data= {"wake":"up early;wake;work",
                 "magic":"magic;card;palm",
                 "diet":"diet;eating;juice;juicing;weight",
                 "exercise": "gym;exercise;ring"
@@ -69,7 +69,7 @@ def makeCategoryMap():
     for c in categories_flat: category_map_i[c] = [c]
 
     # do some super stemming - probably more effiient way
-    suffixes="ed;s;ing".split(";")
+    suffixes="d;ed;s;ing".split(";")
     #print(suffixes)
     for (c,words) in category_map_i.items():
         words = words[:] # force a copy
@@ -85,6 +85,7 @@ def makeCategoryMap():
 
 
 
+    print (category_map_i)
     return category_map_i
 
 
@@ -93,11 +94,17 @@ category_map = makeCategoryMap()
 categories = category_map.keys()
 
 def lineToCategory(l):
-    words = l.replace(".","").replace(",","").lower().split() # TODO: Tokenize
+    # NLP tokenizing remove punctuation.
+    punctuation="/.,;"
+    for p in punctuation:
+        l = l.replace(p," ")
+    words = l.lower().split()
+
+
     for c,words_in_category in category_map.items():
         for w in words:
+            # print (f"C:{c},W:{w},L:{l}")
             if w in words_in_category:
-                # print (f"C:{c},W:{w},{words_in_category},L:{l}")
                 return c
     return None
 
