@@ -56,7 +56,7 @@ def extractListFromFiles(files, section):
 
 def makeCategoryMap():
     category_map_i = {}
-    category_map_data= {"wake":"up early;wake;woke",
+    category_map_data= {"sleep":"up early;wake;woke;sleep",
                 "magic":"magic;card;palm",
                 "diet":"diet;eating;juice;juicing;weight",
                 "exercise": "gym;exercise;ring"
