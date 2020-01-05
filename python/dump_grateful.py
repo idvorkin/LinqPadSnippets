@@ -54,41 +54,61 @@ def extractListFromFiles(files, section):
         yield from extractListInSection(f, section)
 
 
-categories = "up early;magic;up early;diet;essential;appreciate;daily;zach;amelia;tori ".split(
-    ";"
-)
+def makeCategoryMap():
+    category_map_i = {}
+    category_map_data= {"wake":"up early;wake;",
+                "magic":"magic;card;palm",
+                "diet":"diet;eating;juice;juicing;weight",
+                "bike":"bike;biking;biked",
+                "interview":"interview;interviews",
+                "meditate":"meditate;meditated;meditating",
+                "exercise": "gym;exercise"
+                }
+    # todo figure out how to stem
+    categories_flat = "anxiety;essential;appreciate;daily;zach;amelia;tori;offer".split(";")
+
+    for (category,words) in category_map_data.items():
+        category_map_i[category] = words.split(";")
+    for c in categories_flat: category_map_i[c] = [c]
+    return category_map_i
 
 
-def groupGrateful(reasons_to_be_grateful):
+category_map = makeCategoryMap()
+# print (category_map)
+categories = category_map.keys()
+
+def lineToCategory(l):
+    words = l.replace(".","").replace(",","").lower().split() # TODO: Tokenize
+    for c,words_in_category in category_map.items():
+        for w in words:
+            if w in words_in_category:
+                # print (f"C:{c},W:{w},{words_in_category},L:{l}")
+                return c
+    return None
+
+
+def groupCategory(reasons_to_be_grateful):
     grateful_by_reason = defaultdict(list)
 
     for reason in reasons_to_be_grateful:
         if reason == "":
             continue
 
-        normalized_reason = reason.lower()
-        foundCategories = [
-            category for category in categories if category in normalized_reason
-        ]
-
-        isCategory = len(foundCategories) == 1
-
-        key = foundCategories[0] if isCategory else normalized_reason
-        grateful_by_reason[key] += [reason]
+        category = lineToCategory(reason)
+        grateful_by_reason[category] += [reason]
 
     l3 = sorted(grateful_by_reason.items(), key=lambda x: len(x[1]))
     return l3
 
 
-def printGrateful(grouped):
+def printCategory(grouped):
     for l in grouped:
-        print(f"{l[0]}")
-        isList = len(l[1]) > 1
-        isCategory = any([c in l for c in categories])
+        if l[0] == None:
+            for m in l[1]: print(f"{m}")
+            continue
 
-        if isList or isCategory:
-            for m in l[1]:
-                print(f"   {m}")
+        print(f"{l[0]}")
+        for m in l[1]: print(f"   {m}")
 
 
 # extractGratefulReason("a. hello world")
@@ -103,8 +123,8 @@ def printGrateful(grouped):
 # @click.argument("thelist", default="")
 def dumpGlob(glob, thelist):
     all_reasons_to_be_grateful = extractListFromGlob(os.path.expanduser(glob), thelist)
-    grouped = groupGrateful(all_reasons_to_be_grateful)
-    printGrateful(grouped)
+    grouped = groupCategory(all_reasons_to_be_grateful)
+    printCategory(grouped)
 
 
 @click.group()
@@ -145,7 +165,7 @@ def week(weeks, section):
 def dumpSectionDefaultDirectory(section, days, day=True):
     # assert section in   "Grateful Yesterday if".split()
 
-    print(f"----- Section:{section}, days={days} ----- ")
+    print(f"## ----- Section:{section}, days={days} ----- ")
 
     # Dump both archive and latest.
     listItem = []
@@ -175,8 +195,8 @@ def dumpSectionDefaultDirectory(section, days, day=True):
         # print (files)
         listItem = extractListFromFiles(files, section)
 
-    grouped = groupGrateful(listItem)
-    printGrateful(grouped)
+    grouped = groupCategory(listItem)
+    printCategory(grouped)
 
 
 if __name__ == "__main__":
