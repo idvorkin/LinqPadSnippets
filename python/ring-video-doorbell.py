@@ -10,16 +10,23 @@ import time
 import itertools
 import pendulum
 from pathlib import Path
-from ring_doorbell import Ring
+from ring_doorbell import Ring, Auth
 import time
 import sys
+import pdb, traceback, sys
 
 PASSWORD = "replaced_from_secret_box"
 with open("/gits/igor2/secretBox.json") as json_data:
     SECRETS = json.load(json_data)
     PASSWORD = SECRETS["RingAccountPassword"]
 
-ring = Ring("idvorkin@gmail.com", PASSWORD)
+from ring_doorbell import Ring, Auth
+
+auth = Auth(None)
+username = "idvorkin@gmail.com"
+auth.fetch_token(username, PASSWORD)
+
+ring = Ring(auth)
 doorbell = ring.doorbells[0]
 
 
@@ -49,7 +56,6 @@ def upload_ring_event(idx, ring_event) -> None:
 
 
 def downloadAll() -> None:
-    print(f"Connected Success:{ring.is_connected}")
     oldest_id, idx = None, 0
     while True:
         print(f"Downloading in history {idx}, older_then={oldest_id}")
@@ -71,6 +77,7 @@ def printTimeStampAndDownload() -> None:
             return
         except:
             print(f"exception: \n {sys.exc_info()[0]}\n")
+            traceback.print_exc()
             seconds = 10
             print(f"sleeping {seconds} seconds before retry: {retry}")
             time.sleep(seconds)
