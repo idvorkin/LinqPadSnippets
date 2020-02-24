@@ -95,7 +95,7 @@ categories = category_map.keys()
 
 def lineToCategory(l):
     # NLP tokenizing remove punctuation.
-    punctuation="/.,;"
+    punctuation="/.,;'"
     for p in punctuation:
         l = l.replace(p," ")
     words = l.lower().split()
