@@ -20,14 +20,38 @@ with open("/gits/igor2/secretBox.json") as json_data:
     SECRETS = json.load(json_data)
     PASSWORD = SECRETS["RingAccountPassword"]
 
+from pprint import pprint
 from ring_doorbell import Ring, Auth
+from oauthlib.oauth2 import MissingTokenError
 
-auth = Auth(None)
-username = "idvorkin@gmail.com"
-auth.fetch_token(username, PASSWORD)
+cache_file = Path("test_token.cache")
+
+def token_updated(token):
+    cache_file.write_text(json.dumps(token))
+
+
+def otp_callback():
+    auth_code = input("2FA code: ")
+    return auth_code
+
+auth=None
+if cache_file.is_file():
+    auth = Auth("MyProject/1.0", json.loads(cache_file.read_text()), token_updated)
+else:
+    username = "idvorkin@gmail.com"
+    password = PASSWORD
+    auth = Auth("MyProject/1.0", None, token_updated)
+    try:
+        auth.fetch_token(username, password)
+    except MissingTokenError:
+        auth.fetch_token(username, password, otp_callback())
 
 ring = Ring(auth)
-doorbell = ring.doorbells[0]
+ring.update_data()
+devices = ring.devices()
+pprint(devices)
+doorbells = devices['doorbots']
+doorbell = doorbells[0]
 
 
 # Create base path
