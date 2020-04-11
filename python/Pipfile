@@ -33,6 +33,7 @@ beautifulsoup4 = "*"
 mypy = "*"
 pyfiglet = "*"
 click = "*"
+scrapy = "*"
 
 
 [dev-packages]
