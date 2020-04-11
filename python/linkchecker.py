@@ -1,7 +1,7 @@
 # Copied from -
 # https://dev.to/pjcalvo/broken-links-checker-with-python-and-scrapy-webcrawler-1gom
 # Execute via:
-#    scrapy runspider linkchecker.py -o broken-links.csv
+#    scrapy runspider linkchecker.py -o ~/tmp/broken-links.csv
 # Use a webtool @ https://www.brokenlinkcheck.com/broken-links.php#status
 
 from scrapy.spiders import CrawlSpider, Rule
@@ -14,8 +14,9 @@ class MyItems(Item):
     response = Field()  # url that was requested
     status = Field()  # status code received
 
+
 def parse_my_url(response):
-    print (f"called on {response}")
+    print(f"called on {response}")
     # list of response codes that we want to include on the report, we know
     # that 404
     report_if = [404]
@@ -30,9 +31,7 @@ def parse_my_url(response):
 
 class MySpider(CrawlSpider):
     name = "test-crawler"
-    target_domains = [
-        "idvork.in"
-    ]  # list of domains that will be allowed to be crawled
+    target_domains = ["idvork.in"]  # list of domains that will be allowed to be crawled
     start_urls = [
         "https://idvork.in/d",
         "https://idvork.in/td",
@@ -47,7 +46,8 @@ class MySpider(CrawlSpider):
     custom_settings = {
         "CONCURRENT_REQUESTS": 20,  # Some requests timeout, so have plenty of threads.
         "DOWNLOAD_DELAY": 0.05,  # delay between requests
-        "REDIRECT_ENABLED":True
+        "REDIRECT_ENABLED": True,
+        "RETRY_ENABLED": False,
     }
 
     rules = [
@@ -61,10 +61,10 @@ class MySpider(CrawlSpider):
             follow=True,
         ),
         # crawl external links but don't follow them
-        Rule(
-            LinkExtractor(allow=(""), deny=("patterToBeExcluded"), unique=("Yes")),
-            callback=parse_my_url,
-            follow=False,
-        ),
+        # I don't follow what don't follow means - seems like it's actually crawling
+        # Rule(
+        # LinkExtractor(allow=(""), deny=("patterToBeExcluded"), unique=("Yes")),
+        # callback=parse_my_url,
+        # follow=False,
+        # ),
     ]
-
