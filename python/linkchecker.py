@@ -33,8 +33,7 @@ class MySpider(CrawlSpider):
     name = "test-crawler"
     target_domains = ["idvork.in"]  # list of domains that will be allowed to be crawled
     start_urls = [
-        "https://idvork.in/d",
-        "https://idvork.in/td",
+        "https://idvork.in/all"
     ]  # list of starting urls for the crawler
     handle_httpstatus_list = [
         404,
