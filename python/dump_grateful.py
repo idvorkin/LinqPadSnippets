@@ -59,7 +59,8 @@ def makeCategoryMap():
     category_map_data= {"sleep":"up early;wake;woke;sleep;morning;bed",
                 "magic":"magic;card;palm",
                 "diet":"diet;eating;juice;juicing;weight",
-                "exercise": "gym;exercise;ring;trainer;training"
+                "exercise": "gym;exercise;ring;trainer;training;cardio",
+                "meditate": "meditate;meditation"
                 }
     # todo figure out how to stem
     categories_flat = "anxiety;essential;appreciate;daily;zach;amelia;tori;offer;bike;meditate;interview".split(";")
