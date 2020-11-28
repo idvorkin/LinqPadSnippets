@@ -124,15 +124,24 @@ def groupCategory(reasons_to_be_grateful):
     return l3
 
 
-def printCategory(grouped):
+def printCategory(grouped, markdown=False):
     for l in grouped:
         if l[0] == None:
-            for m in l[1]: print(f"{m}")
+            for m in l[1]:
+                if markdown:
+                    print(f"1. {m}")
+                else:
+                    print(f"{m}")
+
             continue
 
-        print(f"{l[0]}")
-        for m in l[1]: print(f"   {m}")
-
+        if not markdown:
+            print(f"{l[0]}")
+        for m in l[1]:
+            if markdown:
+                print(f"1. {m}")
+            else:
+                print(f"   {m}")
 
 # extractGratefulReason("a. hello world")
 # m = list(extractListInSection("/home/idvorkin/gits/igor2/750words/2019-11-04.md", "Grateful"))
@@ -171,9 +180,10 @@ def awesome(days):
 
 @journal.command()
 @click.argument("days", default=2)  # days takes precedent over archive/noarchive
-def todo(days):
+@click.option("--markdown/--no-markdown",show_default=True, default=False)
+def todo(days, markdown):
     """ Yesterday's Todos"""
-    return dumpSectionDefaultDirectory("if", days)
+    return dumpSectionDefaultDirectory("if", days, day=True, markdown=markdown)
 
 
 @journal.command()
@@ -185,10 +195,11 @@ def week(weeks, section):
 
 
 # section
-def dumpSectionDefaultDirectory(section, days, day=True):
+def dumpSectionDefaultDirectory(section, days, day=True, markdown=False):
     # assert section in   "Grateful Yesterday if".split()
 
-    print(f"## ----- Section:{section}, days={days} ----- ")
+    if not markdown:
+        print(f"## ----- Section:{section}, days={days} ----- ")
 
     # Dump both archive and latest.
     listItem = []
@@ -219,7 +230,7 @@ def dumpSectionDefaultDirectory(section, days, day=True):
         listItem = extractListFromFiles(files, section)
 
     grouped = groupCategory(listItem)
-    printCategory(grouped)
+    printCategory(grouped, markdown)
 
 
 if __name__ == "__main__":
