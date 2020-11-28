@@ -56,37 +56,40 @@ def extractListFromFiles(files, section):
 
 def makeCategoryMap():
     category_map_i = {}
-    category_map_data= {"sleep":"up early;wake;woke;sleep;morning;bed",
-                "magic":"magic;card;palm",
-                "diet":"diet;eating;juice;juicing;weight",
-                "exercise": "gym;exercise;ring;trainer;training;cardio",
-                "meditate": "meditate;meditation"
-                }
+    category_map_data = {
+        "sleep": "up early;wake;woke;sleep;morning;bed",
+        "magic": "magic;card;palm",
+        "diet": "diet;eating;juice;juicing;weight",
+        "exercise": "gym;exercise;ring;trainer;training;cardio",
+        "meditate": "meditate;meditation",
+    }
     # todo figure out how to stem
-    categories_flat = "anxiety;essential;appreciate;daily;zach;amelia;tori;offer;bike;meditate;interview".split(";")
+    categories_flat = "anxiety;essential;appreciate;daily;zach;amelia;tori;offer;bike;meditate;interview".split(
+        ";"
+    )
 
-    for (category,words) in category_map_data.items():
+    for (category, words) in category_map_data.items():
         category_map_i[category] = words.split(";")
-    for c in categories_flat: category_map_i[c] = [c]
+    for c in categories_flat:
+        category_map_i[c] = [c]
 
     # do some super stemming - probably more effiient way
-    suffixes="d;ed;s;ing".split(";")
-    #print(suffixes)
-    for (c,words) in category_map_i.items():
-        words = words[:] # force a copy
-        #print (words)
+    suffixes = "d;ed;s;ing".split(";")
+    # print(suffixes)
+    for (c, words) in category_map_i.items():
+        words = words[:]  # force a copy
+        # print (words)
         for w in words:
-            if w == " " or w == "":continue
+            if w == " " or w == "":
+                continue
             for s in suffixes:
-                #print (f"W:{w},s:{s}")
-                with_stem = w+s
-                #print(f"with_stem:{with_stem}")
-                category_map_i[c]+=[with_stem]
-        #print(category_map_i[c])
+                # print (f"W:{w},s:{s}")
+                with_stem = w + s
+                # print(f"with_stem:{with_stem}")
+                category_map_i[c] += [with_stem]
+        # print(category_map_i[c])
 
-
-
-    #print (category_map_i)
+    # print (category_map_i)
     return category_map_i
 
 
@@ -94,15 +97,15 @@ category_map = makeCategoryMap()
 # print (category_map)
 categories = category_map.keys()
 
+
 def lineToCategory(l):
     # NLP tokenizing remove punctuation.
-    punctuation="/.,;'"
+    punctuation = "/.,;'"
     for p in punctuation:
-        l = l.replace(p," ")
+        l = l.replace(p, " ")
     words = l.lower().split()
 
-
-    for c,words_in_category in category_map.items():
+    for c, words_in_category in category_map.items():
         for w in words:
             # print (f"C:{c},W:{w},L:{l}")
             if w in words_in_category:
@@ -143,6 +146,7 @@ def printCategory(grouped, markdown=False):
             else:
                 print(f"   {m}")
 
+
 # extractGratefulReason("a. hello world")
 # m = list(extractListInSection("/home/idvorkin/gits/igor2/750words/2019-11-04.md", "Grateful"))
 # print(m)
@@ -180,7 +184,7 @@ def awesome(days):
 
 @journal.command()
 @click.argument("days", default=2)  # days takes precedent over archive/noarchive
-@click.option("--markdown/--no-markdown",show_default=True, default=False)
+@click.option("--markdown/--no-markdown", show_default=True, default=False)
 def todo(days, markdown):
     """ Yesterday's Todos"""
     return dumpSectionDefaultDirectory("if", days, day=True, markdown=markdown)
