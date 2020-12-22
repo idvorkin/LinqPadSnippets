@@ -26,6 +26,7 @@ from oauthlib.oauth2 import MissingTokenError
 
 cache_file = Path("test_token.cache")
 
+
 def token_updated(token):
     cache_file.write_text(json.dumps(token))
 
@@ -34,7 +35,8 @@ def otp_callback():
     auth_code = input("2FA code: ")
     return auth_code
 
-auth=None
+
+auth = None
 if cache_file.is_file():
     auth = Auth("MyProject/1.0", json.loads(cache_file.read_text()), token_updated)
 else:
@@ -50,7 +52,7 @@ ring = Ring(auth)
 ring.update_data()
 devices = ring.devices()
 pprint(devices)
-doorbells = devices['doorbots']
+doorbells = devices["doorbots"]
 doorbell = doorbells[0]
 
 
@@ -66,8 +68,7 @@ PATH_BASE = "/users/idvor/onedrive/ring/date/"
 
 def upload_ring_event(idx, ring_event) -> None:
     recording_id = ring_event["id"]
-    date = pendulum.instance(
-        ring_event["created_at"]).in_tz("America/Vancouver")
+    date = pendulum.instance(ring_event["created_at"]).in_tz("America/Vancouver")
     date_path_kind = f"{PATH_BASE}{date.date()}/{ring_event['kind']}/"
     make_directory_if_not_exists(date_path_kind)
     date_path_kind_id = f"{date_path_kind}{date.hour}-{date.minute}-{recording_id}.mp4"
@@ -110,8 +111,7 @@ def printTimeStampAndDownload() -> None:
 def main() -> None:
     nightly_execution_tame = "02:00"
     print(f"Download scheduled every day @ {nightly_execution_tame}")
-    schedule.every().day.at(nightly_execution_tame).do(
-        printTimeStampAndDownload)
+    schedule.every().day.at(nightly_execution_tame).do(printTimeStampAndDownload)
     printTimeStampAndDownload()
     while True:
         schedule.run_pending()

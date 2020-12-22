@@ -163,25 +163,25 @@ def dumpGlob(glob, thelist):
 
 
 @app.command()
-def grateful(days:int = typer.Argument(7)):
+def grateful(days: int = typer.Argument(7)):
     """ What made me grateful """
     return dumpSectionDefaultDirectory("Grateful", days)
 
 
 @app.command()
-def awesome(days:int = typer.Argument(7)):
+def awesome(days: int = typer.Argument(7)):
     """ What made yesterday awesome """
     return dumpSectionDefaultDirectory("Yesterday", days)
 
 
 @app.command()
-def todo(days:int = typer.Argument(2), markdown:bool = typer.Option(False)):
+def todo(days: int = typer.Argument(2), markdown: bool = typer.Option(False)):
     """ Yesterday's Todos"""
     return dumpSectionDefaultDirectory("if", days, day=True, markdown=markdown)
 
 
 @app.command()
-def week(weeks:int = typer.Argument(4), section:str = typer.Argument("Moments")):
+def week(weeks: int = typer.Argument(4), section: str = typer.Argument("Moments")):
     """ Section of choice for count weeks"""
     return dumpSectionDefaultDirectory(section, weeks, day=False)
 

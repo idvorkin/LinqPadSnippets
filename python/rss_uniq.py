@@ -6,14 +6,16 @@ import xml.etree.ElementTree as ET
 import requests as requests
 import concurrent.futures as futures
 
+
 def download_and_get_all_titles():
     with futures.ThreadPoolExecutor(max_workers=100) as executor:
-        #get_title_jobs = executor.map(download_and_get_all_title, range(10))
-        #for t in get_title_jobs:
-            #yield from t
+        # get_title_jobs = executor.map(download_and_get_all_title, range(10))
+        # for t in get_title_jobs:
+        # yield from t
         tasks = [executor.submit(download_and_get_all_title, t) for t in range(100)]
         for task in futures.as_completed(tasks):
             yield from task.result()
+
 
 def download_and_get_all_title(page_index):
     print(f"{page_index}: Download++")
@@ -23,6 +25,7 @@ def download_and_get_all_title(page_index):
     yield from titles
     print(f"{page_index}: Download--")
 
+
 movies = list(download_and_get_all_titles())
-print (len(movies))
-print (len(set(movies)))
+print(len(movies))
+print(len(set(movies)))
