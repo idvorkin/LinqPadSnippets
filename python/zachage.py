@@ -1,27 +1,24 @@
 #!/usr/bin/env python3
-from datetime import date
 from datetime import datetime
 from pyfiglet import Figlet
-import click
+from typing import Optional
+import typer
+
+app = typer.Typer()
 
 
-@click.command()
-@click.argument("dateoffset", default=date.today())
-def printZachAge(dateoffset: date) -> None:
+@app.command()
+def printZachAge(dateoffset: Optional[datetime] = typer.Argument(None)) -> None:
     """
-    A little tool to help compute Zach's age in week for
+    A little tool to help compute Zach's age in week for my family journal
     http://ig66.blogspot.com
 
-    With no paramaters uses today's date.
-    dateoffset takes format MM/DD/YY
     """
-
-    isDatePassedIn = isinstance(dateoffset, str)
-    if isDatePassedIn:
-        dateoffset = datetime.strptime(dateoffset, "%x").date()
+    if not dateoffset:
+        dateoffset = datetime.now()
 
     figlet = Figlet(font="big")
-    zachBirthday = date(2010, 4, 22)
+    zachBirthday = datetime(2010, 4, 22)
     age = dateoffset - zachBirthday
     print(figlet.renderText("Zach Age"))
     print(figlet.renderText(f"{int(round(age.days/7))} weeks"))
@@ -33,4 +30,4 @@ def printZachAge(dateoffset: date) -> None:
 
 
 if __name__ == "__main__":
-    printZachAge()
+    app()
