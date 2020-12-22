@@ -1,10 +1,12 @@
 #!python3
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 import re
 import glob
 import os
-import click
+import typer
 from datetime import datetime, timedelta
+
+app = typer.Typer()
 
 # Open all md files
 # read till hit line grateful
@@ -154,46 +156,32 @@ def printCategory(grouped, markdown=False):
 # all_reasons_to_be_grateful = extractGratefulFromGlob (os.path.expanduser("~/gits/igor2/750words_new_archive/*md"))
 
 
-# @click.command()
-# @click.argument("glob", default="~/gits/igor2/750words/*md")
-# @click.argument("thelist", default="")
 def dumpGlob(glob, thelist):
     all_reasons_to_be_grateful = extractListFromGlob(os.path.expanduser(glob), thelist)
     grouped = groupCategory(all_reasons_to_be_grateful)
     printCategory(grouped)
 
 
-@click.group()
-def journal():
-    pass
-
-
-@journal.command()
-@click.argument("days", default=7)  # days takes precedent over archive/noarchive
-def grateful(days):
+@app.command()
+def grateful(days:int = typer.Argument(7)):
     """ What made me grateful """
     return dumpSectionDefaultDirectory("Grateful", days)
 
 
-@journal.command()
-@click.argument("days", default=7)  # days takes precedent over archive/noarchive
-def awesome(days):
+@app.command()
+def awesome(days:int = typer.Argument(7)):
     """ What made yesterday awesome """
     return dumpSectionDefaultDirectory("Yesterday", days)
 
 
-@journal.command()
-@click.argument("days", default=2)  # days takes precedent over archive/noarchive
-@click.option("--markdown/--no-markdown", show_default=True, default=False)
-def todo(days, markdown):
+@app.command()
+def todo(days:int = typer.Argument(2), markdown:bool = typer.Option(False)):
     """ Yesterday's Todos"""
     return dumpSectionDefaultDirectory("if", days, day=True, markdown=markdown)
 
 
-@journal.command()
-@click.argument("weeks", default=4)
-@click.argument("section", default="Moments")
-def week(weeks, section):
+@app.command()
+def week(weeks:int = typer.Argument(4), section:str = typer.Argument("Moments")):
     """ Section of choice for count weeks"""
     return dumpSectionDefaultDirectory(section, weeks, day=False)
 
@@ -238,4 +226,4 @@ def dumpSectionDefaultDirectory(section, days, day=True, markdown=False):
 
 
 if __name__ == "__main__":
-    journal()
+    app()
