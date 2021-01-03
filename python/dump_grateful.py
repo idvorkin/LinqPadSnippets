@@ -129,10 +129,18 @@ def groupCategory(reasons_to_be_grateful):
     return l3
 
 
-def printCategory(grouped, markdown=False):
+def printCategory(grouped, markdown=False, text_only=False):
+
+    def strip_if_text_only(s, text_only):
+        if not text_only:
+            return s
+        return s.replace("1.","").replace("☑","").replace("☐","").strip()
+
     for l in grouped:
-        if l[0] == None:
+        empty_group = l[0] == None
+        if empty_group:
             for m in l[1]:
+                m = strip_if_text_only(m, text_only)
                 if markdown:
                     print(f"1. {m}")
                 else:
@@ -140,11 +148,15 @@ def printCategory(grouped, markdown=False):
 
             continue
 
-        if not markdown:
+        if not markdown and not text_only:
             print(f"{l[0]}")
+
         for m in l[1]:
+            m = strip_if_text_only(m, text_only)
             if markdown:
                 print(f"1. {m}")
+            elif text_only:
+                print(f"{m}")
             else:
                 print(f"   {m}")
 
@@ -175,9 +187,9 @@ def awesome(days: int = typer.Argument(7)):
 
 
 @app.command()
-def todo(days: int = typer.Argument(2), markdown: bool = typer.Option(False)):
+def todo(days: int = typer.Argument(2), markdown: bool = typer.Option(False), text_only: bool = typer.Option(False)):
     """ Yesterday's Todos"""
-    return dumpSectionDefaultDirectory("if", days, day=True, markdown=markdown)
+    return dumpSectionDefaultDirectory("if", days, day=True, markdown=markdown, text_only=text_only)
 
 
 @app.command()
@@ -187,10 +199,12 @@ def week(weeks: int = typer.Argument(4), section: str = typer.Argument("Moments"
 
 
 # section
-def dumpSectionDefaultDirectory(section, days, day=True, markdown=False):
+def dumpSectionDefaultDirectory(section, days, day=True, markdown=False, text_only=False):
     # assert section in   "Grateful Yesterday if".split()
 
-    if not markdown:
+    printHeader =  markdown == False and text_only == False
+
+    if printHeader:
         print(f"## ----- Section:{section}, days={days} ----- ")
 
     # Dump both archive and latest.
@@ -222,7 +236,7 @@ def dumpSectionDefaultDirectory(section, days, day=True, markdown=False):
         listItem = extractListFromFiles(files, section)
 
     grouped = groupCategory(listItem)
-    printCategory(grouped, markdown)
+    printCategory(grouped, markdown, text_only)
 
 
 if __name__ == "__main__":
