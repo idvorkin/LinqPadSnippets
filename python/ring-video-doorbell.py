@@ -94,7 +94,7 @@ def upload_ring_event(idx, ring_event) -> None:
 def downloadAll() -> None:
     oldest_id, idx = None, 0
     while True:
-        ic(f"Downloading in history {idx}, older_then={oldest_id}")
+        print(f"Downloading in history {idx}, older_then={oldest_id}")
         events = doorbell.history(older_than=oldest_id)
         for event in events:
             upload_ring_event(idx, event)
@@ -112,10 +112,10 @@ def printTimeStampAndDownload() -> None:
             print(f"Done @ {pendulum.now()}")
             return
         except:
-            ic(f"exception: \n {sys.exc_info()[0]}\n")
+            ic(sys.exc_info()[0])
             traceback.print_exc()
             seconds = 10
-            ic(f"sleeping {seconds} seconds before retry: {retry}")
+            print(f"sleeping {seconds} seconds before retry: {retry}")
             time.sleep(seconds)
 
 
