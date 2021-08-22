@@ -14,6 +14,7 @@ from ring_doorbell import Ring, Auth
 import time
 import sys
 import pdb, traceback, sys
+import icecream
 
 PASSWORD = "replaced_from_secret_box"
 with open("/gits/igor2/secretBox.json") as json_data:
@@ -75,7 +76,14 @@ def upload_ring_event(idx, ring_event) -> None:
     print(f"{idx}: {date_path_kind_id}")
     if not Path(date_path_kind_id).is_file():
         print("Downloading")
-        doorbell.recording_download(recording_id, date_path_kind_id)
+        try:
+            doorbell.recording_download(recording_id, date_path_kind_id)
+        except urllib.error.HTTPError as exception:
+            # Skip on 404
+            ic("Failure, skipping")
+            sleep(1)
+            continue
+
     else:
         print("Already Present")
 
@@ -83,7 +91,7 @@ def upload_ring_event(idx, ring_event) -> None:
 def downloadAll() -> None:
     oldest_id, idx = None, 0
     while True:
-        print(f"Downloading in history {idx}, older_then={oldest_id}")
+        ic(f"Downloading in history {idx}, older_then={oldest_id}")
         events = doorbell.history(older_than=oldest_id)
         for event in events:
             upload_ring_event(idx, event)
@@ -101,10 +109,10 @@ def printTimeStampAndDownload() -> None:
             print(f"Done @ {pendulum.now()}")
             return
         except:
-            print(f"exception: \n {sys.exc_info()[0]}\n")
+            ic(f"exception: \n {sys.exc_info()[0]}\n")
             traceback.print_exc()
             seconds = 10
-            print(f"sleeping {seconds} seconds before retry: {retry}")
+            ic(f"sleeping {seconds} seconds before retry: {retry}")
             time.sleep(seconds)
 
 
