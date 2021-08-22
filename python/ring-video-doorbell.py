@@ -14,7 +14,7 @@ from ring_doorbell import Ring, Auth
 import time
 import sys
 import pdb, traceback, sys
-import icecream
+import icecream as ic
 
 PASSWORD = "replaced_from_secret_box"
 with open("/gits/igor2/secretBox.json") as json_data:
