@@ -81,8 +81,10 @@ def upload_ring_event(idx, ring_event) -> None:
         except urllib.error.HTTPError as exception:
             # Skip on 404
             ic("Failure, skipping")
+            ic(exception)
             sleep(1)
-            continue
+            return
+
 
     else:
         print("Already Present")
