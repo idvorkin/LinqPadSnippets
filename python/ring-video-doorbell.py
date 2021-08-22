@@ -38,12 +38,13 @@ def otp_callback():
 
 
 auth = None
+app_name = "PleaseForTheLoveOfferAnOfficialAPI/1.0"
 if cache_file.is_file():
-    auth = Auth("MyProject/1.0", json.loads(cache_file.read_text()), token_updated)
+    auth = Auth(app_name, json.loads(cache_file.read_text()), token_updated)
 else:
     username = "idvorkin@gmail.com"
     password = PASSWORD
-    auth = Auth("MyProject/1.0", None, token_updated)
+    auth = Auth(app_name, None, token_updated)
     try:
         auth.fetch_token(username, password)
     except MissingTokenError:
