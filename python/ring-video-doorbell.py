@@ -16,6 +16,7 @@ import sys
 import pdb, traceback, sys
 from icecream import ic
 import urllib
+import requests
 
 PASSWORD = "replaced_from_secret_box"
 with open("/gits/igor2/secretBox.json") as json_data:
@@ -80,7 +81,8 @@ def upload_ring_event(idx, ring_event) -> None:
         print("Downloading")
         try:
             doorbell.recording_download(recording_id, date_path_kind_id)
-        except urllib.error.HTTPError as exception:
+        # except urllib.error.HTTPError as exception:
+        except requests.exceptions.HTTPError as exception:
             # Skip on 404
             ic("Failure, skipping")
             ic(exception)
