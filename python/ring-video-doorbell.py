@@ -94,17 +94,22 @@ def upload_ring_event(idx, ring_event) -> None:
         print("Already Present")
 
 
-def downloadAll() -> None:
-    oldest_id, idx = None, 0
+def getAllEvents() -> []:
+    events = []
+    oldest_id = 0
     while True:
-        print(f"Downloading in history {idx}, older_then={oldest_id}")
-        events = doorbell.history(older_than=oldest_id)
-        for event in events:
-            upload_ring_event(idx, event)
-            oldest_id = event["id"]
-            idx = idx + 1
-        if not events:
+        tmp = doorbell.history(older_than=oldest_id)
+        if not tmp:
             break
+        events.extend(tmp)
+        oldest_id = tmp[-1]["id"] # last element's id
+    return events
+
+
+def downloadAll() -> None:
+    for idx,event in iter(reverse(getAllEvents())):
+        # upload_ring_event(idx, event)
+        ic(event)
 
 
 def printTimeStampAndDownload() -> None:
