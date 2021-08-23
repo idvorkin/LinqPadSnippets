@@ -107,7 +107,7 @@ def getAllEvents() -> []:
 
 
 def downloadAll() -> None:
-    for idx,event in iter(reverse(getAllEvents())):
+    for idx,event in iter(reversed(getAllEvents())):
         # upload_ring_event(idx, event)
         ic(event)
 
