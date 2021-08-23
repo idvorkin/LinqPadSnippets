@@ -17,9 +17,12 @@ import pdb, traceback, sys
 from icecream import ic
 import urllib
 import requests
+import time
+from typing import List
 
 PASSWORD = "replaced_from_secret_box"
 with open("/gits/igor2/secretBox.json") as json_data:
+# with open("/home/ec2-user/gits/igor2/secretBox.json") as json_data:
     SECRETS = json.load(json_data)
     PASSWORD = SECRETS["RingAccountPassword"]
 
@@ -86,7 +89,7 @@ def upload_ring_event(idx, ring_event) -> None:
             # Skip on 404
             ic("Failure, skipping")
             ic(exception)
-            sleep(1)
+            time.sleep(1)
             return
 
 
@@ -94,7 +97,7 @@ def upload_ring_event(idx, ring_event) -> None:
         print("Already Present")
 
 
-def getAllEvents() -> []:
+def getAllEvents() -> List:
     events = []
     oldest_id = 0
     while True:
@@ -107,9 +110,12 @@ def getAllEvents() -> []:
 
 
 def downloadAll() -> None:
-    for idx,event in iter(reversed(getAllEvents())):
-        # upload_ring_event(idx, event)
-        ic(event)
+    events = getAllEvents()
+    ic (len(events))
+    for idx,event in enumerate(reversed(events)):
+        upload_ring_event(idx, event)
+        # ic(event)
+        # time.sleep(1)
 
 
 def printTimeStampAndDownload() -> None:
