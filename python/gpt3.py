@@ -31,6 +31,13 @@ def stdin(max_tokens:int=50):
     print(f"[bold]{prompt}[/bold] {response_text}")
 
 @app.command()
+def tldr(max_tokens:int=100):
+    prompt = "".join(sys.stdin.readlines())
+    prompt += "\n tl;dr:"
+    response_text = do_complete(prompt, max_tokens)
+    print(f"[bold]{prompt}[/bold] {response_text}")
+
+@app.command()
 def eli5(max_tokens:int=50):
     prompt_input = "".join(sys.stdin.readlines())
     prompt=f'''My second grader asked me what this passage means:
