@@ -31,7 +31,7 @@ def stdin(max_tokens:int=50):
     print(f"[bold]{prompt}[/bold] {response_text}")
 
 @app.command()
-def tldr(max_tokens:int=50):
+def eli5(max_tokens:int=50):
     prompt_input = "".join(sys.stdin.readlines())
     prompt=f'''My second grader asked me what this passage means:
 """{prompt_input}
