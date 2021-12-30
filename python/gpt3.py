@@ -26,8 +26,7 @@ app = typer.Typer()
 
 @app.command()
 def stdin(max_tokens:int=20):
-    prompt = "".join(sys.stdin.readlines())
-    response_text = do_complete(prompt, max_tokens)
+    prompt = "".join(sys.stdin.readlines()) response_text = do_complete(prompt, max_tokens)
     print(f"[bold]{prompt}[/bold] {response_text}")
 
 
