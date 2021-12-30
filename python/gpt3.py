@@ -33,9 +33,9 @@ def stdin(max_tokens:int=50):
 @app.command()
 def tldr(max_tokens:int=100):
     prompt = "".join(sys.stdin.readlines())
-    prompt += "\n tl;dr:"
-    response_text = do_complete(prompt, max_tokens)
-    print(f"[bold]{prompt}[/bold] {response_text}")
+    prompt_in = prompt+ "\ntl;dr:"
+    response_text = do_complete(prompt_in, max_tokens)
+    print(f"{prompt}\n**TL;DR:** {response_text}")
 
 @app.command()
 def eli5(max_tokens:int=50):
