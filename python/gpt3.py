@@ -9,6 +9,7 @@ import os
 import openai
 import sys
 from rich import print
+from loguru import logger
 
 
 # Load your API key from an environment variable or secret management service
@@ -72,4 +73,7 @@ def complete(prompt:str, tokens:int=typer.Option(50)):
 
 
 if __name__ == "__main__":
-    app()
+    @logger.catch
+    def app_with_loguru():
+        app()
+    app_with_loguru()
