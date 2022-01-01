@@ -25,20 +25,20 @@ gpt3 = setup_gpt()
 app = typer.Typer()
 
 @app.command()
-def stdin(max_tokens:int=50):
+def stdin(tokens:int=typer.Option(50)):
     prompt = "".join(sys.stdin.readlines())
-    response_text = do_complete(prompt, max_tokens)
+    response_text = do_complete(prompt, tokens)
     print(f"[bold]{prompt}[/bold] {response_text}")
 
 @app.command()
-def tldr(max_tokens:int=100):
+def tldr(tokens:int = typer.Option(200)):
     prompt = "".join(sys.stdin.readlines())
     prompt_in = prompt+ "\ntl;dr:"
-    response_text = do_complete(prompt_in, max_tokens)
+    response_text = do_complete(prompt_in, tokens)
     print(f"{prompt}\n**TL;DR:** {response_text}")
 
 @app.command()
-def eli5(max_tokens:int=50):
+def eli5(tokens:int=typer.Option(200)):
     prompt_input = "".join(sys.stdin.readlines())
     prompt=f'''My second grader asked me what this passage means:
 """{prompt_input}
@@ -48,7 +48,7 @@ I rephrased it for him, in plain language a second grader can understand:
     response = gpt3.Completion.create(engine="davinci",
       temperature=0.5,
       prompt=prompt,
-      max_tokens=100,
+      tokens=tokens,
       top_p=1,
       frequency_penalty=0.2,
       presence_penalty=0,
@@ -66,11 +66,9 @@ def do_complete(prompt, max_tokens):
     return response.choices[0].text
 
 @app.command()
-def complete(prompt:str, max_tokens=10):
-    response_text = do_complete(prompt, max_tokens)
+def complete(prompt:str, tokens:int=typer.Option(50)):
+    response_text = do_complete(prompt, tokens)
     print(f"[bold]{prompt}[/bold] {response_text}")
-
-
 
 
 if __name__ == "__main__":
