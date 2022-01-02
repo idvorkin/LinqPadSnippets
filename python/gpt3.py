@@ -10,6 +10,7 @@ import openai
 import sys
 from rich import print
 from loguru import logger
+import re
 
 
 # Load your API key from an environment variable or secret management service
@@ -24,6 +25,22 @@ def setup_gpt():
 
 gpt3 = setup_gpt()
 app = typer.Typer()
+
+
+# GPT performs poorly with trailing spaces (wow this function was writting by gpt)
+def remove_trailing_spaces(str):
+        return re.sub(r'\s+$', '', str)
+
+@app.command()
+def py(tokens:int=typer.Option(50)):
+    prompt = "\n".join(sys.stdin.readlines())
+    response = gpt3.Completion.create(engine="davinci-codex",
+                                      temperature=0.5,
+                                      prompt=remove_trailing_spaces(prompt),
+                                      max_tokens=tokens
+                                      )
+    response_text = response.choices[0].text
+    print(f"{prompt}\n{response_text}")
 
 @app.command()
 def stdin(tokens:int=typer.Option(50)):
@@ -48,8 +65,8 @@ I rephrased it for him, in plain language a second grader can understand:
       '''
     response = gpt3.Completion.create(engine="davinci",
       temperature=0.5,
-      prompt=prompt,
-      tokens=tokens,
+      prompt=remove_trailing_spaces(prompt),
+      max_tokens=tokens,
       top_p=1,
       frequency_penalty=0.2,
       presence_penalty=0,
@@ -60,7 +77,7 @@ I rephrased it for him, in plain language a second grader can understand:
 
 
 def do_complete(prompt, max_tokens):
-    response = openai.Completion.create(engine="davinci", prompt=prompt, max_tokens=max_tokens)
+    response = openai.Completion.create(engine="davinci", prompt=remove_trailing_spaces(prompt), max_tokens=max_tokens)
 
     #ic(response)
     #ic(response.choices[0].text)
