@@ -5,8 +5,6 @@ import openai
 import json
 from icecream import ic
 import typer
-import os
-import openai
 import sys
 from rich import print
 from loguru import logger
@@ -43,10 +41,20 @@ def py(tokens:int=typer.Option(50)):
     print(f"{prompt}\n{response_text}")
 
 @app.command()
-def stdin(tokens:int=typer.Option(50)):
+def stdin(tokens:int=typer.Option(50), responses:int=typer.Option(1)):
     prompt = "".join(sys.stdin.readlines())
-    response_text = do_complete(prompt, tokens)
-    print(f"[bold]{prompt}[/bold] {response_text}")
+    if responses == 1:
+        response_text = do_complete(prompt, tokens)
+        print(f"[bold]{prompt}[/bold] {response_text}")
+    else:
+        response = openai.Completion.create(engine="davinci", n=responses, prompt=remove_trailing_spaces(prompt), max_tokens=tokens, stop=["\n"])
+        for c in response.choices:
+            print (f"{c.text}")
+
+        #ic(response)
+        #ic(response.choices[0].text)
+        return response.choices[0].text
+
 
 @app.command()
 def tldr(tokens:int = typer.Option(200)):
