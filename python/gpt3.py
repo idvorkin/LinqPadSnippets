@@ -6,7 +6,8 @@ import json
 from icecream import ic
 import typer
 import sys
-from rich import print
+from rich import print as print
+import rich
 from loguru import logger
 import re
 
@@ -80,6 +81,11 @@ def tldr(tokens: int = typer.Option(50), responses: int = typer.Option(1)):
 @app.command()
 def answer(tokens: int = typer.Option(50), responses: int = typer.Option(1)):
     prompt = "".join(sys.stdin.readlines())
+    # clean input
+    is_markdown = prompt.startswith("**")
+    prompt = prompt.removeprefix("Q:")
+    prompt = prompt.removeprefix("**Q:**")
+    prompt = prompt.strip()
     prompt_in = f'''This is a conversation between a human and a brilliant AI. If a question is "normal" the AI answers it. If the question is "nonsense" the AI says "yo be real"
 
 Q: What is human life expectancy in the United States?
@@ -113,9 +119,13 @@ A:'''
         max_tokens=tokens,
         stop=["\n\n"],
     )
-    print(f"Q:{prompt}?")
+    if is_markdown:
+        print(f"**Q:** {prompt}")
+    else:
+        print(f"Q: {prompt}")
+
     for c in response.choices:
-        print(f"**A**{c.text}")
+        print(f"**A:**{c.text}")
 
 @app.command()
 def eli5(tokens: int = typer.Option(200)):
@@ -183,10 +193,23 @@ def complete(prompt: str, tokens: int = typer.Option(50)):
     print(f"[bold]{prompt}[/bold] {response_text}")
 
 
-if __name__ == "__main__":
+def configure_width_for_rich():
+    # need to think more, as CLI vs vim will be different
+    c = rich.get_console()
+    is_from_vim = c.width == 80
+    if is_from_vim:
+        # Not sure how to fix, deal with later
+        # vim can handle wide stuff
+        # c.set_width(400)
+        # c.update_dimensions(width=4000, height=c.height )
+        pass
 
-    @logger.catch
-    def app_with_loguru():
-        app()
+@logger.catch
+def app_with_loguru():
+    configure_width_for_rich()
+    return
+    app()
+
+if __name__ == "__main__":
 
     app_with_loguru()
