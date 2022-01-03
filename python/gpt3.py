@@ -86,28 +86,28 @@ def answer(tokens: int = typer.Option(50), responses: int = typer.Option(4)):
     prompt = prompt.removeprefix("Q:")
     prompt = prompt.removeprefix("**Q:**")
     prompt = prompt.strip()
-    prompt_in = f'''This is a conversation between a human and a brilliant AI. If a question is "normal" the AI answers it. If the question is "nonsense" the AI says "yo be real"
+    prompt_in = f'''This is a conversation between a human and a brilliant AI. If a question is "normal" the AI answers it. If the question is "nonsense" the AI says "I don't understand the question"
 
 Q: What is human life expectancy in the United States?
 A: Human life expectancy in the United States is 78 years.
 
 Q: How do you sporkle a morgle?
-A: yo be real
+A: I don't understand the question
 
 Q: Who was president of the United States before George W. Bush?
 A: Bill Clinton was president of the United States before George W. Bush.
 
 Q: How many rainbows does it take to jump from Hawaii to seventeen?
-A: yo be real
+A: I don't understand the question
 
 Q: How does an umbrella work
 A: An umbrella works by using a series of spokes to keep the rain from falling on you.
 
 Q: How many bonks are in a quoit?
-A: yo be real
+A: I don't understand the question
 
 Q: Which colorless green ideas speak furiously
-A: yo be real
+A: I don't understand the question
 
 Q: {prompt}
 A:'''
