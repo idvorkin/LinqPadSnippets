@@ -79,7 +79,7 @@ def tldr(tokens: int = typer.Option(50), responses: int = typer.Option(1)):
         print(f"**TL;DR:** {c.text}")
 
 @app.command()
-def answer(tokens: int = typer.Option(50), responses: int = typer.Option(1)):
+def answer(tokens: int = typer.Option(50), responses: int = typer.Option(4)):
     prompt = "".join(sys.stdin.readlines())
     # clean input
     is_markdown = prompt.startswith("**")
@@ -207,7 +207,6 @@ def configure_width_for_rich():
 @logger.catch
 def app_with_loguru():
     configure_width_for_rich()
-    return
     app()
 
 if __name__ == "__main__":
