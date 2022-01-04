@@ -6,7 +6,8 @@ import json
 from icecream import ic
 import typer
 import sys
-from rich import print as print
+original_print = print
+from rich import print as rich_print
 import rich
 from loguru import logger
 import re
@@ -192,6 +193,16 @@ def complete(prompt: str, tokens: int = typer.Option(50)):
     response_text = do_complete(prompt, tokens)
     print(f"[bold]{prompt}[/bold] {response_text}")
 
+@app.command()
+def debug():
+    ic(print)
+    ic(rich_print)
+    ic(original_print)
+    c = rich.get_console()
+    ic(c.width)
+    is_from_vim = c.width == 80
+    ic(is_from_vim)
+    print("long line -aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
 def configure_width_for_rich():
     # need to think more, as CLI vs vim will be different
@@ -202,7 +213,9 @@ def configure_width_for_rich():
         # vim can handle wide stuff
         # c.set_width(400)
         # c.update_dimensions(width=4000, height=c.height )
-        pass
+        print = original_print
+    else:
+        print = rich_print
 
 @logger.catch
 def app_with_loguru():
