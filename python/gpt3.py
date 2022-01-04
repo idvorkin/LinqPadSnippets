@@ -11,6 +11,15 @@ from rich import print as rich_print
 import rich
 from loguru import logger
 import re
+is_from_console=False
+
+def bold_console(s):
+    if (is_from_console):
+        return f"[bold]{s}[/bold]"
+    else:
+        return s
+
+
 
 
 # Load your API key from an environment variable or secret management service
@@ -52,7 +61,7 @@ def stdin(tokens: int = typer.Option(50), responses: int = typer.Option(1)):
     prompt = "".join(sys.stdin.readlines())
     if responses == 1:
         response_text = do_complete(prompt, tokens)
-        print(f"[bold]{prompt}[/bold] {response_text}")
+        print(f"{bold_console(prompt)} {response_text}")
     else:
         response = openai.Completion.create(
             engine="davinci",
@@ -200,22 +209,18 @@ def debug():
     ic(original_print)
     c = rich.get_console()
     ic(c.width)
-    is_from_vim = c.width == 80
-    ic(is_from_vim)
+    ic(is_from_console)
     print("long line -aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
 def configure_width_for_rich():
+    global is_from_console
     # need to think more, as CLI vs vim will be different
     c = rich.get_console()
-    is_from_vim = c.width == 80
-    if is_from_vim:
-        # Not sure how to fix, deal with later
-        # vim can handle wide stuff
-        # c.set_width(400)
-        # c.update_dimensions(width=4000, height=c.height )
-        print = original_print
-    else:
+    is_from_console = c.width != 80
+    if is_from_console:
         print = rich_print
+    else:
+        print = original_print
 
 @logger.catch
 def app_with_loguru():
