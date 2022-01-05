@@ -20,8 +20,6 @@ def bold_console(s):
         return s
 
 
-
-
 # Load your API key from an environment variable or secret management service
 
 
@@ -74,16 +72,19 @@ def stdin(tokens: int = typer.Option(50), responses: int = typer.Option(1)):
             print(f"{c.text}")
 
 @app.command()
-def tldr(tokens: int = typer.Option(50), responses: int = typer.Option(1)):
+def tldr(tokens: int = typer.Option(50), responses: int = typer.Option(1), debug:bool=False):
     prompt = "".join(sys.stdin.readlines())
-    prompt_in = prompt + "\ntl;dr:"
+    prompt_to_gpt = remove_trailing_spaces(prompt) + "\ntl;dr:"
     response = openai.Completion.create(
         engine="davinci",
         n=responses,
-        prompt=remove_trailing_spaces(prompt_in),
+        prompt=prompt_to_gpt,
         max_tokens=tokens,
-        stop=["\n"],
+        stop=["\n\n"],
     )
+    if (debug):
+        ic(prompt_to_gpt)
+        print (prompt_to_gpt)
     print(f"{prompt}")
     for c in response.choices:
         print(f"**TL;DR:** {c.text}")
@@ -138,25 +139,30 @@ A:'''
         print(f"**A:**{c.text}")
 
 @app.command()
-def eli5(tokens: int = typer.Option(200)):
+def eli5(tokens: int = typer.Option(200), debug:bool=False):
     prompt_input = "".join(sys.stdin.readlines())
     prompt = f'''My second grader asked me what this passage means:
-"""{prompt_input}
+"""\n{prompt_input}
 """
 I rephrased it for him, in plain language a second grader can understand:
+"""
       '''
+    prompt_to_gpt =  remove_trailing_spaces(prompt)
     response = gpt3.Completion.create(
         engine="davinci",
         temperature=0.5,
-        prompt=remove_trailing_spaces(prompt),
+        prompt=prompt_to_gpt,
         max_tokens=tokens,
         top_p=1,
         frequency_penalty=0.2,
         presence_penalty=0,
         stop=['"""'],
     )
+    if debug:
+        ic(prompt_to_gpt)
     response_text = response.choices[0].text
-    print(response_text)
+    print(prompt_input)
+    print("eli5:"+response_text)
 
 @app.command()
 def complex(tokens: int = typer.Option(200)):
