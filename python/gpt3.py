@@ -6,12 +6,15 @@ import json
 from icecream import ic
 import typer
 import sys
-original_print = print
 from rich import print as rich_print
 import rich
 from loguru import logger
 import re
+original_print = print
 is_from_console=False
+
+text_model_best = 'text-davinci-001'
+code_model_best = 'code-davinci-001'
 
 def bold_console(s):
     if (is_from_console):
@@ -45,7 +48,7 @@ def remove_trailing_spaces(str):
 def py(tokens: int = typer.Option(50)):
     prompt = "\n".join(sys.stdin.readlines())
     response = gpt3.Completion.create(
-        engine="davinci-codex",
+        engine=code_model_best,
         temperature=0.5,
         prompt=remove_trailing_spaces(prompt),
         max_tokens=tokens,
@@ -62,7 +65,7 @@ def stdin(tokens: int = typer.Option(50), responses: int = typer.Option(1)):
         print(f"{bold_console(prompt)} {response_text}")
     else:
         response = openai.Completion.create(
-            engine="davinci",
+            engine=text_model_best,
             n=responses,
             prompt=remove_trailing_spaces(prompt),
             max_tokens=tokens,
@@ -76,7 +79,7 @@ def tldr(tokens: int = typer.Option(50), responses: int = typer.Option(1), debug
     prompt = "".join(sys.stdin.readlines())
     prompt_to_gpt = remove_trailing_spaces(prompt) + "\ntl;dr:"
     response = openai.Completion.create(
-        engine="davinci",
+        engine=text_model_best,
         n=responses,
         prompt=prompt_to_gpt,
         max_tokens=tokens,
@@ -97,34 +100,33 @@ def answer(tokens: int = typer.Option(50), responses: int = typer.Option(4)):
     prompt = prompt.removeprefix("Q:")
     prompt = prompt.removeprefix("**Q:**")
     prompt = prompt.strip()
-    prompt_in = f'''This is a conversation between a human and a brilliant AI. If a question is "normal" the AI answers it. If the question is "nonsense" the AI says "I don't understand the question"
-
+    prompt_in = f'''I am a highly intelligent question answering bot. If you ask me a question that is rooted in truth, I will give you the answer. If you ask me a question that is nonsense, trickery, or has no clear answer, I will respond with "Unknown".
 Q: What is human life expectancy in the United States?
 A: Human life expectancy in the United States is 78 years.
 
-Q: How do you sporkle a morgle?
-A: I don't understand the question
+Q: Who was president of the United States in 1955?
+A: Dwight D. Eisenhower was president of the United States in 1955.
 
-Q: Who was president of the United States before George W. Bush?
-A: Bill Clinton was president of the United States before George W. Bush.
+Q: Which party did he belong to?
+A: He belonged to the Republican Party.
 
-Q: How many rainbows does it take to jump from Hawaii to seventeen?
-A: I don't understand the question
+Q: What is the square root of banana?
+A: Unknown
 
-Q: How does an umbrella work
-A: An umbrella works by using a series of spokes to keep the rain from falling on you.
+Q: How does a telescope work?
+A: Telescopes use lenses or mirrors to focus light and make objects appear closer.
 
-Q: How many bonks are in a quoit?
-A: I don't understand the question
+Q: Where were the 1992 Olympics held?
+A: The 1992 Olympics were held in Barcelona, Spain.
 
-Q: Which colorless green ideas speak furiously
-A: I don't understand the question
+Q: How many squigs are in a bonk?
+A: Unknown
 
-Q: {prompt}
-A:'''
+Q:
+    '''
     response = openai.Completion.create(
         temperature=0.3,
-        engine="davinci",
+        engine=text_model_best,
         n=responses,
         prompt=remove_trailing_spaces(prompt_in),
         max_tokens=tokens,
@@ -139,17 +141,34 @@ A:'''
         print(f"**A:**{c.text}")
 
 @app.command()
-def eli5(tokens: int = typer.Option(200), debug:bool=False):
+def notes(tokens: int = typer.Option(200), debug:bool=False):
     prompt_input = "".join(sys.stdin.readlines())
-    prompt = f'''My second grader asked me what this passage means:
-"""\n{prompt_input}
-"""
-I rephrased it for him, in plain language a second grader can understand:
-"""
-      '''
+    prompt = f'''What are 5 key points I should know when studying {prompt_input}?'''
     prompt_to_gpt =  remove_trailing_spaces(prompt)
     response = gpt3.Completion.create(
-        engine="davinci",
+        engine=text_model_best,
+        temperature=0.5,
+        prompt=prompt_to_gpt,
+        max_tokens=tokens,
+        top_p=1,
+        frequency_penalty=0.2,
+        presence_penalty=0,
+        stop=['"""'],
+    )
+    if debug:
+        ic(prompt_to_gpt)
+    response_text = response.choices[0].text
+    print(prompt_input)
+    print("eli5:"+response_text)
+
+@app.command()
+def eli5(tokens: int = typer.Option(200), debug:bool=False):
+    prompt_input = "".join(sys.stdin.readlines())
+    prompt = f'''Summarize this for a second-grade sudent:
+{prompt_input}'''
+    prompt_to_gpt =  remove_trailing_spaces(prompt)
+    response = gpt3.Completion.create(
+        engine=text_model_best,
         temperature=0.5,
         prompt=prompt_to_gpt,
         max_tokens=tokens,
@@ -180,7 +199,7 @@ AI: Being a typical domesticated animal, having been genetically selected for co
 Human: {prompt_input}
 AI:'''
     response = gpt3.Completion.create(
-        engine="davinci",
+        engine=text_model_best,
         temperature=0.5,
         prompt=remove_trailing_spaces(prompt),
         max_tokens=tokens,
@@ -195,7 +214,7 @@ AI:'''
 
 def do_complete(prompt, max_tokens):
     response = openai.Completion.create(
-        engine="davinci", prompt=remove_trailing_spaces(prompt), max_tokens=max_tokens
+        engine=text_model_best, prompt=remove_trailing_spaces(prompt), max_tokens=max_tokens
     )
 
     # ic(response)
