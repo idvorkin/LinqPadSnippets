@@ -147,13 +147,12 @@ def study(points: int = typer.Option(5), tokens: int = typer.Option(200), debug:
     prompt_to_gpt =  remove_trailing_spaces(prompt)
     response = gpt3.Completion.create(
         engine=text_model_best,
-        temperature=0.5,
+        temperature=0.7,
         prompt=prompt_to_gpt,
         max_tokens=tokens,
         top_p=1,
         frequency_penalty=0.2,
         presence_penalty=0,
-        stop=['"""'],
     )
     if debug:
         ic(prompt_to_gpt)
