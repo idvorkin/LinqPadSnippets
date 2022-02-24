@@ -141,9 +141,9 @@ Q:
         print(f"**A:**{c.text}")
 
 @app.command()
-def notes(tokens: int = typer.Option(200), debug:bool=False):
+def study(points: int = typer.Option(5), tokens: int = typer.Option(200), debug:bool=False):
     prompt_input = "".join(sys.stdin.readlines())
-    prompt = f'''What are 5 key points I should know when studying {prompt_input}?'''
+    prompt = f'''What are {points}  key points I should know when studying {prompt_input}?'''
     prompt_to_gpt =  remove_trailing_spaces(prompt)
     response = gpt3.Completion.create(
         engine=text_model_best,
@@ -158,8 +158,7 @@ def notes(tokens: int = typer.Option(200), debug:bool=False):
     if debug:
         ic(prompt_to_gpt)
     response_text = response.choices[0].text
-    print(prompt_input)
-    print("eli5:"+response_text)
+    print(f"{prompt_input}\n{response_text}\n")
 
 @app.command()
 def eli5(tokens: int = typer.Option(200), debug:bool=False):
@@ -184,7 +183,7 @@ def eli5(tokens: int = typer.Option(200), debug:bool=False):
     print("eli5:"+response_text)
 
 @app.command()
-def complex(tokens: int = typer.Option(200)):
+def complex(tokens: int = typer.Option(200), debug:bool=False):
     prompt_input = "".join(sys.stdin.readlines())
     prompt = f'''The human asks the AI to make a simple description more complicated. The AI responds by writing a verbose response full of jargon to explain a simple concept.
 
@@ -206,11 +205,12 @@ AI:'''
         top_p=1,
         frequency_penalty=0.2,
         presence_penalty=0,
-        stop=['\n']
+        stop=['\n\n\n']
     )
     response_text = response.choices[0].text
+    if debug:
+        print(prompt)
     print(response_text)
-
 
 def do_complete(prompt, max_tokens):
     response = openai.Completion.create(
