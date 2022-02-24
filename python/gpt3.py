@@ -56,23 +56,31 @@ def py(tokens: int = typer.Option(50)):
     response_text = response.choices[0].text
     print(f"{prompt}\n{response_text}")
 
+def prep_for_fzf(s):
+    s =  re.sub(r"\n$", "", s)
+    s = s.replace("\n", ";")
+    return s
+
 
 @app.command()
-def stdin(tokens: int = typer.Option(50), responses: int = typer.Option(1)):
+def stdin(tokens: int = typer.Option(50), responses: int = typer.Option(1), to_fzf:bool= typer.Option(False)):
     prompt = "".join(sys.stdin.readlines())
     if responses == 1:
         response_text = do_complete(prompt, tokens)
         print(f"{bold_console(prompt)} {response_text}")
     else:
         response = openai.Completion.create(
+            temperature=0.7,
             engine=text_model_best,
             n=responses,
             prompt=remove_trailing_spaces(prompt),
             max_tokens=tokens,
-            stop=["\n"],
         )
         for c in response.choices:
-            print(f"{c.text}")
+            text = c.text
+            if to_fzf:
+                text = prep_for_fzf(c.text)
+            print(f"{text}")
 
 @app.command()
 def tldr(tokens: int = typer.Option(50), responses: int = typer.Option(1), debug:bool=False):
