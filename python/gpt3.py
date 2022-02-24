@@ -167,7 +167,7 @@ def eli5(tokens: int = typer.Option(200), debug:bool=False):
     prompt_to_gpt =  remove_trailing_spaces(prompt)
     response = gpt3.Completion.create(
         engine=text_model_best,
-        temperature=0.5,
+        temperature=0.7,
         prompt=prompt_to_gpt,
         max_tokens=tokens,
         top_p=1,
@@ -198,7 +198,7 @@ Human: {prompt_input}
 AI:'''
     response = gpt3.Completion.create(
         engine=text_model_best,
-        temperature=0.5,
+        temperature=0.7,
         prompt=remove_trailing_spaces(prompt),
         max_tokens=tokens,
         top_p=1,
