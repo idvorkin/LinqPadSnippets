@@ -127,7 +127,7 @@ def tldr(
     for c in response.choices:
         if to_fzf:
             text = prep_for_fzf(c.text)
-        print(f"**TL|DR:** {text}")
+        print(f"\n**tl,dr:** {text}")
 
 
 @app.command()
