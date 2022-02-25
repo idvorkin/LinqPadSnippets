@@ -111,6 +111,7 @@ def tldr(
     tokens: int = typer.Option(50),
     responses: int = typer.Option(1),
     debug: bool = False,
+    to_fzf: bool = typer.Option(False),
 ):
     prompt = "".join(sys.stdin.readlines())
     prompt_to_gpt = remove_trailing_spaces(prompt) + "\ntl;dr:"
@@ -126,7 +127,9 @@ def tldr(
         print(prompt_to_gpt)
     print(f"{prompt}")
     for c in response.choices:
-        print(f"**TL;DR:** {c.text}")
+        if to_fzf:
+            text = prep_for_fzf(c.text)
+        print(f"**TL;DR:** {text}")
 
 
 @app.command()
@@ -180,7 +183,9 @@ Q:
 
 @app.command()
 def study(
-    points: int = typer.Option(5), tokens: int = typer.Option(200), debug: bool = False
+    points: int = typer.Option(5), tokens: int = typer.Option(200), debug: bool = False,
+    responses: int = typer.Option(1),
+    to_fzf: bool = typer.Option(False),
 ):
     prompt_input = "".join(sys.stdin.readlines())
     prompt = (
@@ -195,15 +200,19 @@ def study(
         top_p=1,
         frequency_penalty=0.2,
         presence_penalty=0,
+        n=responses,
     )
     if debug:
         ic(prompt_to_gpt)
-    response_text = response.choices[0].text
-    print(f"{prompt_input}\n{response_text}\n")
+    for c in response.choices:
+        text = c.text
+        if to_fzf:
+            text = prep_for_fzf("\n"+c.text)
+        print(text)
 
 
 @app.command()
-def eli5(tokens: int = typer.Option(200), debug: bool = False):
+def eli5(tokens: int = typer.Option(200), debug: bool = False, to_fzf: bool = typer.Option(False)):
     prompt_input = "".join(sys.stdin.readlines())
     prompt = f"""Summarize this for a second-grade sudent:
 {prompt_input}"""
