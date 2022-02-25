@@ -10,14 +10,16 @@ from rich import print as rich_print
 import rich
 from loguru import logger
 import re
-original_print = print
-is_from_console=False
 
-text_model_best = 'text-davinci-001'
-code_model_best = 'code-davinci-001'
+original_print = print
+is_from_console = False
+
+text_model_best = "text-davinci-001"
+code_model_best = "code-davinci-001"
+
 
 def bold_console(s):
-    if (is_from_console):
+    if is_from_console:
         return f"[bold]{s}[/bold]"
     else:
         return s
@@ -56,34 +58,60 @@ def py(tokens: int = typer.Option(50)):
     response_text = response.choices[0].text
     print(f"{prompt}\n{response_text}")
 
+
 def prep_for_fzf(s):
-    s =  re.sub(r"\n$", "", s)
+    # remove starting new lines
+    while s.startswith("\n"):
+        s = s[1:]
+    s = re.sub(r"\n$", "", s)
     s = s.replace("\n", ";")
     return s
 
 
 @app.command()
-def stdin(tokens: int = typer.Option(50), responses: int = typer.Option(1), to_fzf:bool= typer.Option(False)):
-    prompt = "".join(sys.stdin.readlines())
-    if responses == 1:
-        response_text = do_complete(prompt, tokens)
-        print(f"{bold_console(prompt)} {response_text}")
+def stdin(
+    file: str = typer.Option("stdin"),
+    tokens: int = typer.Option(50),
+    responses: int = typer.Option(1),
+    to_fzf: bool = typer.Option(False),
+    debug: bool = False,
+):
+    prompt = ""
+    if file == "stdin":
+        prompt = "".join(sys.stdin.readlines())
     else:
-        response = openai.Completion.create(
-            temperature=0.7,
-            engine=text_model_best,
-            n=responses,
-            prompt=remove_trailing_spaces(prompt),
-            max_tokens=tokens,
-        )
-        for c in response.choices:
-            text = c.text
-            if to_fzf:
-                text = prep_for_fzf(c.text)
-            print(f"{text}")
+        prompt = "".join(open(file).readlines())
+
+    prompt = remove_trailing_spaces(prompt)
+    if debug:
+        print("prompt:", prompt)
+
+    response = openai.Completion.create(
+        temperature=0.6,
+        engine=text_model_best,
+        n=responses,
+        prompt=prompt,
+        max_tokens=tokens,
+    )
+    if debug:
+        print ("response:", response)
+    if responses == 1:
+        print(f"{bold_console(prompt)} {response.choices[0].text}")
+        return
+
+    for c in response.choices:
+        text = c.text
+        if to_fzf:
+            text = prep_for_fzf(c.text)
+        print(f"{text}")
+
 
 @app.command()
-def tldr(tokens: int = typer.Option(50), responses: int = typer.Option(1), debug:bool=False):
+def tldr(
+    tokens: int = typer.Option(50),
+    responses: int = typer.Option(1),
+    debug: bool = False,
+):
     prompt = "".join(sys.stdin.readlines())
     prompt_to_gpt = remove_trailing_spaces(prompt) + "\ntl;dr:"
     response = openai.Completion.create(
@@ -93,12 +121,13 @@ def tldr(tokens: int = typer.Option(50), responses: int = typer.Option(1), debug
         max_tokens=tokens,
         stop=["\n\n"],
     )
-    if (debug):
+    if debug:
         ic(prompt_to_gpt)
-        print (prompt_to_gpt)
+        print(prompt_to_gpt)
     print(f"{prompt}")
     for c in response.choices:
         print(f"**TL;DR:** {c.text}")
+
 
 @app.command()
 def answer(tokens: int = typer.Option(50), responses: int = typer.Option(4)):
@@ -108,7 +137,7 @@ def answer(tokens: int = typer.Option(50), responses: int = typer.Option(4)):
     prompt = prompt.removeprefix("Q:")
     prompt = prompt.removeprefix("**Q:**")
     prompt = prompt.strip()
-    prompt_in = f'''I am a highly intelligent question answering bot. If you ask me a question that is rooted in truth, I will give you the answer. If you ask me a question that is nonsense, trickery, or has no clear answer, I will respond with "Unknown".
+    prompt_in = f"""I am a highly intelligent question answering bot. If you ask me a question that is rooted in truth, I will give you the answer. If you ask me a question that is nonsense, trickery, or has no clear answer, I will respond with "Unknown".
 Q: What is human life expectancy in the United States?
 A: Human life expectancy in the United States is 78 years.
 
@@ -131,7 +160,7 @@ Q: How many squigs are in a bonk?
 A: Unknown
 
 Q:
-    '''
+    """
     response = openai.Completion.create(
         temperature=0.3,
         engine=text_model_best,
@@ -148,11 +177,16 @@ Q:
     for c in response.choices:
         print(f"**A:**{c.text}")
 
+
 @app.command()
-def study(points: int = typer.Option(5), tokens: int = typer.Option(200), debug:bool=False):
+def study(
+    points: int = typer.Option(5), tokens: int = typer.Option(200), debug: bool = False
+):
     prompt_input = "".join(sys.stdin.readlines())
-    prompt = f'''What are {points}  key points I should know when studying {prompt_input}?'''
-    prompt_to_gpt =  remove_trailing_spaces(prompt)
+    prompt = (
+        f"""What are {points}  key points I should know when studying {prompt_input}?"""
+    )
+    prompt_to_gpt = remove_trailing_spaces(prompt)
     response = gpt3.Completion.create(
         engine=text_model_best,
         temperature=0.7,
@@ -167,12 +201,13 @@ def study(points: int = typer.Option(5), tokens: int = typer.Option(200), debug:
     response_text = response.choices[0].text
     print(f"{prompt_input}\n{response_text}\n")
 
+
 @app.command()
-def eli5(tokens: int = typer.Option(200), debug:bool=False):
+def eli5(tokens: int = typer.Option(200), debug: bool = False):
     prompt_input = "".join(sys.stdin.readlines())
-    prompt = f'''Summarize this for a second-grade sudent:
-{prompt_input}'''
-    prompt_to_gpt =  remove_trailing_spaces(prompt)
+    prompt = f"""Summarize this for a second-grade sudent:
+{prompt_input}"""
+    prompt_to_gpt = remove_trailing_spaces(prompt)
     response = gpt3.Completion.create(
         engine=text_model_best,
         temperature=0.7,
@@ -187,12 +222,13 @@ def eli5(tokens: int = typer.Option(200), debug:bool=False):
         ic(prompt_to_gpt)
     response_text = response.choices[0].text
     print(prompt_input)
-    print("eli5:"+response_text)
+    print("eli5:" + response_text)
+
 
 @app.command()
-def complex(tokens: int = typer.Option(200), debug:bool=False):
+def complex(tokens: int = typer.Option(200), debug: bool = False):
     prompt_input = "".join(sys.stdin.readlines())
-    prompt = f'''The human asks the AI to make a simple description more complicated. The AI responds by writing a verbose response full of jargon to explain a simple concept.
+    prompt = f"""The human asks the AI to make a simple description more complicated. The AI responds by writing a verbose response full of jargon to explain a simple concept.
 
 Human: explain how to use a drinking fountain.
 
@@ -203,7 +239,7 @@ Human: explain how to play with a dog
 AI: Being a typical domesticated animal, having been genetically selected for controllability, trainability, and general anthropomorphic features and functions, the typical dog possesses highly specialized and developed feeding behavior. The typical feeding behavior involves routine sustenance intake which can be observed by monitoring changes in animal size. Routine sustenance intake involves active and passive feeding habits, and one can gauge animal health by observing the relative levels of hydration. During training, reward conditioned reinforcement is applied. This involves the practice of rewarding targeted behaviors through the application of reinforcers, with the provision that the targeted behavior is observed. Relevant to the discussion at hand is the typical active and passive behavior exhibited by a typical dog.
 
 Human: {prompt_input}
-AI:'''
+AI:"""
     response = gpt3.Completion.create(
         engine=text_model_best,
         temperature=0.7,
@@ -212,16 +248,19 @@ AI:'''
         top_p=1,
         frequency_penalty=0.2,
         presence_penalty=0,
-        stop=['\n\n\n']
+        stop=["\n\n\n"],
     )
     response_text = response.choices[0].text
     if debug:
         print(prompt)
     print(response_text)
 
+
 def do_complete(prompt, max_tokens):
     response = openai.Completion.create(
-        engine=text_model_best, prompt=remove_trailing_spaces(prompt), max_tokens=max_tokens
+        engine=text_model_best,
+        prompt=remove_trailing_spaces(prompt),
+        max_tokens=max_tokens,
     )
 
     # ic(response)
@@ -234,6 +273,7 @@ def complete(prompt: str, tokens: int = typer.Option(50)):
     response_text = do_complete(prompt, tokens)
     print(f"[bold]{prompt}[/bold] {response_text}")
 
+
 @app.command()
 def debug():
     ic(print)
@@ -242,7 +282,10 @@ def debug():
     c = rich.get_console()
     ic(c.width)
     ic(is_from_console)
-    print("long line -aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+    print(
+        "long line -aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    )
+
 
 def configure_width_for_rich():
     global is_from_console
@@ -254,10 +297,12 @@ def configure_width_for_rich():
     else:
         print = original_print
 
+
 @logger.catch
 def app_with_loguru():
     configure_width_for_rich()
     app()
+
 
 if __name__ == "__main__":
 
