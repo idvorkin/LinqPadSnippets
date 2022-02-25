@@ -120,7 +120,6 @@ def tldr(
         n=responses,
         prompt=prompt_to_gpt,
         max_tokens=tokens,
-        stop=["\n\n"],
     )
     if debug:
         ic(prompt_to_gpt)
