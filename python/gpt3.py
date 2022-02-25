@@ -94,7 +94,7 @@ def stdin(
         max_tokens=tokens,
     )
     if debug:
-        print ("response:", response)
+        print("response:", response)
     if responses == 1:
         print(f"{bold_console(prompt)} {response.choices[0].text}")
         return
@@ -125,11 +125,10 @@ def tldr(
     if debug:
         ic(prompt_to_gpt)
         print(prompt_to_gpt)
-    print(f"{prompt}")
     for c in response.choices:
         if to_fzf:
             text = prep_for_fzf(c.text)
-        print(f"**TL;DR:** {text}")
+        print(f"**TL|DR:** {text}")
 
 
 @app.command()
@@ -183,7 +182,9 @@ Q:
 
 @app.command()
 def study(
-    points: int = typer.Option(5), tokens: int = typer.Option(200), debug: bool = False,
+    points: int = typer.Option(5),
+    tokens: int = typer.Option(200),
+    debug: bool = False,
     responses: int = typer.Option(1),
     to_fzf: bool = typer.Option(False),
 ):
@@ -207,12 +208,17 @@ def study(
     for c in response.choices:
         text = c.text
         if to_fzf:
-            text = prep_for_fzf("\n"+c.text)
+            text = prep_for_fzf("\n" + c.text)
         print(text)
 
 
 @app.command()
-def eli5(tokens: int = typer.Option(200), debug: bool = False, to_fzf: bool = typer.Option(False)):
+def eli5(
+    tokens: int = typer.Option(200),
+    debug: bool = False,
+    responses: int = typer.Option(1),
+    to_fzf: bool = typer.Option(False),
+):
     prompt_input = "".join(sys.stdin.readlines())
     prompt = f"""Summarize this for a second-grade sudent:
 {prompt_input}"""
@@ -225,13 +231,17 @@ def eli5(tokens: int = typer.Option(200), debug: bool = False, to_fzf: bool = ty
         top_p=1,
         frequency_penalty=0.2,
         presence_penalty=0,
-        stop=['"""'],
+        n=responses,
     )
     if debug:
         ic(prompt_to_gpt)
     response_text = response.choices[0].text
     print(prompt_input)
-    print("eli5:" + response_text)
+    for c in response.choices:
+        text = "eli:5" + c.text
+        if to_fzf:
+            text = prep_for_fzf("\n" + c.text)
+        print(text)
 
 
 @app.command()
