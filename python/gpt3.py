@@ -91,7 +91,6 @@ def stdin(
     # engine=text_model_best,
     response = openai.Completion.create(
         temperature=0.6,
-        engine=text_model_best,
         engine="davinci",
         n=responses,
         prompt=prompt,
