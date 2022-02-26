@@ -129,10 +129,14 @@ def tldr(
     if debug:
         ic(prompt_to_gpt)
         print(prompt_to_gpt)
+
     for c in response.choices:
         if to_fzf:
-            text = prep_for_fzf(c.text)
-        print(f"\n**tl,dr:** {text}")
+            #; is newline
+            text = ";**tl,dr:* " + prep_for_fzf(c.text)
+        else:
+            text = f"\n**tl,dr:** {text}"
+        print(text)
 
 
 @app.command()
