@@ -88,7 +88,9 @@ def stdin(
 
 
     # text_model_best is boooring
-    # engine=text_model_best,
+    engine=text_model_best
+    # engine = "davinci"
+
     response = openai.Completion.create(
         temperature=0.6,
         engine="davinci",
@@ -111,7 +113,7 @@ def stdin(
 
 @app.command()
 def tldr(
-    tokens: int = typer.Option(50),
+    tokens: int = typer.Option(300),
     responses: int = typer.Option(1),
     debug: bool = False,
     to_fzf: bool = typer.Option(False),
