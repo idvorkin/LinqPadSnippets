@@ -110,7 +110,6 @@ def stdin(
             text = prep_for_fzf(c.text)
         print(f"{text}")
 
-
 @app.command()
 def tldr(
     tokens: int = typer.Option(300),
@@ -120,6 +119,33 @@ def tldr(
 ):
     prompt = "".join(sys.stdin.readlines())
     prompt_to_gpt = remove_trailing_spaces(prompt) + "\ntl;dr:"
+    response = openai.Completion.create(
+        engine=text_model_best,
+        n=responses,
+        prompt=prompt_to_gpt,
+        max_tokens=tokens,
+    )
+    if debug:
+        ic(prompt_to_gpt)
+        print(prompt_to_gpt)
+
+    for c in response.choices:
+        if to_fzf:
+            #; is newline
+            text = ";**tl,dr:* " + prep_for_fzf(c.text)
+        else:
+            text = f"\n**tl,dr:** {text}"
+        print(text)
+
+@app.command()
+def summary(
+    tokens: int = typer.Option(300),
+    responses: int = typer.Option(1),
+    debug: bool = False,
+    to_fzf: bool = typer.Option(False),
+):
+    prompt = "".join(sys.stdin.readlines())
+    prompt_to_gpt = "Summarize the following text:\n" + remove_trailing_spaces(prompt) + '\n The protagonist '
     response = openai.Completion.create(
         engine=text_model_best,
         n=responses,
