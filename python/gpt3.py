@@ -159,9 +159,9 @@ def summary(
     for c in response.choices:
         if to_fzf:
             #; is newline
-            text = ";**tl,dr:* " + prep_for_fzf(c.text)
+            text = ";**The protagonist** " + prep_for_fzf(c.text)
         else:
-            text = f"\n**tl,dr:** {text}"
+            text = f"The protagonist {text}"
         print(text)
 
 
