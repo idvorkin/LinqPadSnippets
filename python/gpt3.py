@@ -75,18 +75,11 @@ def stdin(
     to_fzf: bool = typer.Option(False),
     debug: bool = False,
 ):
-    user_text  = remove_trailing_spaces("".join(sys.stdin.readlines()))
+    user_text = remove_trailing_spaces("".join(sys.stdin.readlines()))
     gpt_start_with = ""
     prompt_to_gpt = user_text
 
-    base_query(
-        tokens,
-        responses,
-        debug,
-        to_fzf,
-        prompt_to_gpt,
-        gpt_start_with
-    )
+    base_query(tokens, responses, debug, to_fzf, prompt_to_gpt, gpt_start_with)
 
 
 @app.command()
