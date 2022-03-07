@@ -70,45 +70,23 @@ def prep_for_fzf(s):
 
 @app.command()
 def stdin(
-    file: str = typer.Option("stdin"),
     tokens: int = typer.Option(50),
     responses: int = typer.Option(1),
     to_fzf: bool = typer.Option(False),
     debug: bool = False,
 ):
-    prompt = ""
-    if file == "stdin":
-        prompt = "".join(sys.stdin.readlines())
-    else:
-        prompt = "".join(open(file).readlines())
+    user_text  = remove_trailing_spaces("".join(sys.stdin.readlines()))
+    gpt_start_with = ""
+    prompt_to_gpt = user_text
 
-    prompt = remove_trailing_spaces(prompt)
-    if debug:
-        print("prompt:", prompt)
-
-
-    # text_model_best is boooring
-    engine=text_model_best
-    # engine = "davinci"
-
-    response = openai.Completion.create(
-        temperature=0.6,
-        engine="davinci",
-        n=responses,
-        prompt=prompt,
-        max_tokens=tokens,
+    base_query(
+        tokens,
+        responses,
+        debug,
+        to_fzf,
+        prompt_to_gpt,
+        gpt_start_with
     )
-    if debug:
-        print("response:", response)
-    if responses == 1:
-        print(f"{bold_console(prompt)} {response.choices[0].text}")
-        return
-
-    for c in response.choices:
-        text = c.text
-        if to_fzf:
-            text = prep_for_fzf(c.text)
-        print(f"{text}")
 
 @app.command()
 def tldr(
