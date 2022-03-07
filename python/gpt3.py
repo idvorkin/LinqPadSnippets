@@ -137,15 +137,14 @@ def tldr(
             text = f"\n**tl,dr:** {text}"
         print(text)
 
-@app.command()
-def summary(
+def base_query(
     tokens: int = typer.Option(300),
     responses: int = typer.Option(1),
     debug: bool = False,
     to_fzf: bool = typer.Option(False),
+    prompt_to_gpt="replace_prompt",
+    gpt_response_start="gpt_response_start"
 ):
-    prompt = "".join(sys.stdin.readlines())
-    prompt_to_gpt = "Summarize the following text:\n" + remove_trailing_spaces(prompt) + '\n The protagonist '
     response = openai.Completion.create(
         engine=text_model_best,
         n=responses,
@@ -159,10 +158,56 @@ def summary(
     for c in response.choices:
         if to_fzf:
             #; is newline
-            text = ";**The protagonist** " + prep_for_fzf(c.text)
+            base =  f"**{gpt_response_start}**" if len(gpt_response_start) > 0 else ""
+            text = f"{base} {prep_for_fzf(c.text)}"
+            print (text)
         else:
-            text = f"The protagonist {text}"
-        print(text)
+            base =  gpt_response_start
+            if len(gpt_response_start) > 0:
+                base+=" "
+            text = f"{gpt_response_start} {c.text}"
+            print(text)
+            if len(response.choices) > 1:
+                print ("----")
+
+@app.command()
+def mood(
+    tokens: int = typer.Option(300),
+    responses: int = typer.Option(1),
+    debug: bool = False,
+    to_fzf: bool = typer.Option(False),
+):
+    user_text  = remove_trailing_spaces("".join(sys.stdin.readlines()))
+    gpt_start_with="The patient is feeling"
+    prompt_to_gpt = f"A psychologist reads the following journal entry and then enumerates the top emotions and their causes:\n {user_text}\n {gpt_start_with} "
+    base_query(
+        tokens,
+        responses,
+        debug,
+        to_fzf,
+        prompt_to_gpt,
+        gpt_start_with
+    )
+
+
+@app.command()
+def summary(
+    tokens: int = typer.Option(300),
+    responses: int = typer.Option(1),
+    debug: bool = False,
+    to_fzf: bool = typer.Option(False),
+):
+    user_text  = remove_trailing_spaces("".join(sys.stdin.readlines()))
+    gpt_start_with ="The protagonist"
+    prompt_to_gpt = f"Summarize the following text:\n {user_text}\n {gpt_start_with} "
+    base_query(
+        tokens,
+        responses,
+        debug,
+        to_fzf,
+        prompt_to_gpt,
+        gpt_start_with
+    )
 
 
 @app.command()
@@ -222,28 +267,20 @@ def study(
     responses: int = typer.Option(1),
     to_fzf: bool = typer.Option(False),
 ):
-    prompt_input = "".join(sys.stdin.readlines())
-    prompt = (
-        f"""What are {points}  key points I should know when studying {prompt_input}?"""
+    user_text  = remove_trailing_spaces("".join(sys.stdin.readlines()))
+    gpt_start_with=""
+    prompt_to_gpt = (
+        f"""What are {points}  key points I should know when studying {user_text}?"""
     )
-    prompt_to_gpt = remove_trailing_spaces(prompt)
-    response = gpt3.Completion.create(
-        engine=text_model_best,
-        temperature=0.7,
-        prompt=prompt_to_gpt,
-        max_tokens=tokens,
-        top_p=1,
-        frequency_penalty=0.2,
-        presence_penalty=0,
-        n=responses,
+    gpt_start_with =""
+    base_query(
+        tokens,
+        responses,
+        debug,
+        to_fzf,
+        prompt_to_gpt,
+        gpt_start_with
     )
-    if debug:
-        ic(prompt_to_gpt)
-    for c in response.choices:
-        text = c.text
-        if to_fzf:
-            text = prep_for_fzf("\n" + c.text)
-        print(text)
 
 
 @app.command()
@@ -253,29 +290,18 @@ def eli5(
     responses: int = typer.Option(1),
     to_fzf: bool = typer.Option(False),
 ):
-    prompt_input = "".join(sys.stdin.readlines())
-    prompt = f"""Summarize this for a second-grade sudent:
-{prompt_input}"""
+    user_text  = remove_trailing_spaces("".join(sys.stdin.readlines()))
+    gpt_start_with=""
+    prompt = f"""Summarize this for a second-grade sudent: {user_text}"""
     prompt_to_gpt = remove_trailing_spaces(prompt)
-    response = gpt3.Completion.create(
-        engine=text_model_best,
-        temperature=0.7,
-        prompt=prompt_to_gpt,
-        max_tokens=tokens,
-        top_p=1,
-        frequency_penalty=0.2,
-        presence_penalty=0,
-        n=responses,
+    base_query(
+        tokens,
+        responses,
+        debug,
+        to_fzf,
+        prompt_to_gpt,
+        gpt_start_with
     )
-    if debug:
-        ic(prompt_to_gpt)
-    response_text = response.choices[0].text
-    print(prompt_input)
-    for c in response.choices:
-        text = "eli:5" + c.text
-        if to_fzf:
-            text = prep_for_fzf("\n" + c.text)
-        print(text)
 
 
 @app.command()
