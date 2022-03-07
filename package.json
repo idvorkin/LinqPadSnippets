@@ -23,6 +23,13 @@
     "prettier": "^2.5.1"
   },
   "lint-staged": {
-    "*.{js,css,md}": "prettier --write"
+    "*.{ts,css,html,json}": "prettier --write",
+    "*.py": [
+      "black"
+    ],
+    "*.md": [
+      "prettier --write",
+      "markdownlint --fix"
+    ]
   }
 }

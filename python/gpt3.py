@@ -88,6 +88,7 @@ def stdin(
         gpt_start_with
     )
 
+
 @app.command()
 def tldr(
     tokens: int = typer.Option(300),
@@ -109,11 +110,12 @@ def tldr(
 
     for c in response.choices:
         if to_fzf:
-            #; is newline
+            # ; is newline
             text = ";**tl,dr:* " + prep_for_fzf(c.text)
         else:
             text = f"\n**tl,dr:** {text}"
         print(text)
+
 
 def base_query(
     tokens: int = typer.Option(300),
@@ -121,7 +123,7 @@ def base_query(
     debug: bool = False,
     to_fzf: bool = typer.Option(False),
     prompt_to_gpt="replace_prompt",
-    gpt_response_start="gpt_response_start"
+    gpt_response_start="gpt_response_start",
 ):
     response = openai.Completion.create(
         engine=text_model_best,
@@ -135,18 +137,19 @@ def base_query(
 
     for c in response.choices:
         if to_fzf:
-            #; is newline
-            base =  f"**{gpt_response_start}**" if len(gpt_response_start) > 0 else ""
+            # ; is newline
+            base = f"**{gpt_response_start}**" if len(gpt_response_start) > 0 else ""
             text = f"{base} {prep_for_fzf(c.text)}"
-            print (text)
+            print(text)
         else:
-            base =  gpt_response_start
+            base = gpt_response_start
             if len(gpt_response_start) > 0:
-                base+=" "
+                base += " "
             text = f"{gpt_response_start} {c.text}"
             print(text)
             if len(response.choices) > 1:
-                print ("----")
+                print("----")
+
 
 @app.command()
 def mood(
@@ -155,17 +158,10 @@ def mood(
     debug: bool = False,
     to_fzf: bool = typer.Option(False),
 ):
-    user_text  = remove_trailing_spaces("".join(sys.stdin.readlines()))
-    gpt_start_with="The patient is feeling"
+    user_text = remove_trailing_spaces("".join(sys.stdin.readlines()))
+    gpt_start_with = "The patient is feeling"
     prompt_to_gpt = f"A psychologist reads the following journal entry and then enumerates the top emotions and their causes:\n {user_text}\n {gpt_start_with} "
-    base_query(
-        tokens,
-        responses,
-        debug,
-        to_fzf,
-        prompt_to_gpt,
-        gpt_start_with
-    )
+    base_query(tokens, responses, debug, to_fzf, prompt_to_gpt, gpt_start_with)
 
 
 @app.command()
@@ -175,17 +171,10 @@ def summary(
     debug: bool = False,
     to_fzf: bool = typer.Option(False),
 ):
-    user_text  = remove_trailing_spaces("".join(sys.stdin.readlines()))
-    gpt_start_with ="The protagonist"
+    user_text = remove_trailing_spaces("".join(sys.stdin.readlines()))
+    gpt_start_with = "The protagonist"
     prompt_to_gpt = f"Summarize the following text:\n {user_text}\n {gpt_start_with} "
-    base_query(
-        tokens,
-        responses,
-        debug,
-        to_fzf,
-        prompt_to_gpt,
-        gpt_start_with
-    )
+    base_query(tokens, responses, debug, to_fzf, prompt_to_gpt, gpt_start_with)
 
 
 @app.command()
@@ -245,20 +234,13 @@ def study(
     responses: int = typer.Option(1),
     to_fzf: bool = typer.Option(False),
 ):
-    user_text  = remove_trailing_spaces("".join(sys.stdin.readlines()))
-    gpt_start_with=""
+    user_text = remove_trailing_spaces("".join(sys.stdin.readlines()))
+    gpt_start_with = ""
     prompt_to_gpt = (
         f"""What are {points}  key points I should know when studying {user_text}?"""
     )
-    gpt_start_with =""
-    base_query(
-        tokens,
-        responses,
-        debug,
-        to_fzf,
-        prompt_to_gpt,
-        gpt_start_with
-    )
+    gpt_start_with = ""
+    base_query(tokens, responses, debug, to_fzf, prompt_to_gpt, gpt_start_with)
 
 
 @app.command()
@@ -268,18 +250,11 @@ def eli5(
     responses: int = typer.Option(1),
     to_fzf: bool = typer.Option(False),
 ):
-    user_text  = remove_trailing_spaces("".join(sys.stdin.readlines()))
-    gpt_start_with=""
+    user_text = remove_trailing_spaces("".join(sys.stdin.readlines()))
+    gpt_start_with = ""
     prompt = f"""Summarize this for a second-grade sudent: {user_text}"""
     prompt_to_gpt = remove_trailing_spaces(prompt)
-    base_query(
-        tokens,
-        responses,
-        debug,
-        to_fzf,
-        prompt_to_gpt,
-        gpt_start_with
-    )
+    base_query(tokens, responses, debug, to_fzf, prompt_to_gpt, gpt_start_with)
 
 
 @app.command()

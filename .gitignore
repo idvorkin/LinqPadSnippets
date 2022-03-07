@@ -170,5 +170,7 @@ $RECYCLE.BIN/
 *~
 tags
 
+node_modules/
+
 #NUnit test results
 TestResult.xml
