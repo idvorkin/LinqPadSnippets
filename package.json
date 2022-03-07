@@ -1,0 +1,28 @@
+{
+  "name": "linqpadsnippets",
+  "version": "1.0.0",
+  "description": "LinqPadSnippets ===============",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/idvorkin/linqpadsnippets.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/idvorkin/linqpadsnippets/issues"
+  },
+  "homepage": "https://github.com/idvorkin/linqpadsnippets#readme",
+  "devDependencies": {
+    "husky": "^7.0.4",
+    "lint-staged": "^12.3.5",
+    "prettier": "^2.5.1"
+  },
+  "lint-staged": {
+    "*.{js,css,md}": "prettier --write"
+  }
+}
