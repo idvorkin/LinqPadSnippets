@@ -10,6 +10,14 @@
   (lambda (x) (/ (- (f (+ x delta_one)) (f x)) delta_one)))
 
 
+; + d(C)/dx => 0
+; * d(cX)/dx => C
+; * d(x^n)/dx =>  n*x^(n-1)
+
+(define (deriv f)
+  ; Derivative is rate of change, rise/run
+  (lambda (x) (/ (- (f (+ x delta_one)) (f x)) delta_one)))
+
 ; Lets write us a program
 (displayln "y(x) = 4* x ^ 2 + 7")
 (define (y x)
