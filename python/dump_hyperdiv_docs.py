@@ -14,6 +14,8 @@ from pathlib import Path
 app = typer.Typer()
 console = Console()
 
+
+
 ast_grep_rule = """# A rule to find the markdown to be dumped
 # https://ast-grep.github.io/guide/rule-config.html#rule
 id: main
