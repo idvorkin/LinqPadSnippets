@@ -15,7 +15,6 @@ app = typer.Typer()
 console = Console()
 
 
-
 ast_grep_rule = """# A rule to find the markdown to be dumped
 # https://ast-grep.github.io/guide/rule-config.html#rule
 id: main
@@ -29,16 +28,24 @@ rule:
     - pattern: code_example($MD, B)
 """
 
+
 def run_ast_grep():
     # write the rule to a temporary file (because I can't get inline to work)
-    with tempfile.NamedTemporaryFile(mode='w', delete=True, suffix='.yaml') as temp_file:
+    with tempfile.NamedTemporaryFile(
+        mode="w", delete=True, suffix=".yaml"
+    ) as temp_file:
         temp_file_path = temp_file.name
         Path(temp_file_path).write_text(ast_grep_rule)
-        result = subprocess.run(["sg", "scan", "--rule", temp_file_path, "--json"], capture_output=True, text=True)
+        result = subprocess.run(
+            ["sg", "scan", "--rule", temp_file_path, "--json"],
+            capture_output=True,
+            text=True,
+        )
         if result.stderr:
             print(result.stderr)
             raise Exception("Error running ast-grep")
         return result.stdout
+
 
 # generated via [gpt.py2json](https://tinyurl.com/23dl535z)
 class AstGrepHit(BaseModel):
@@ -59,6 +66,7 @@ class AstGrepHit(BaseModel):
         class Single(BaseModel):
             class MDType(BaseModel):
                 text: str
+
             MD: MDType
             string_value: str | None = None
             integer_value: int | None = None
@@ -78,6 +86,7 @@ class AstGrepHit(BaseModel):
     note: Optional[str] = ""
     message: str
 
+
 def cleanup_output_string(s):
     # if string is wrapped with " , ' or """, remove it from the front and back
     if s.startswith('"""') and s.endswith('"""'):
@@ -88,13 +97,13 @@ def cleanup_output_string(s):
         s = s[1:-1]
 
     # Remove leading and trailing empty or whitespace-only lines
-    lines = s.split('\n')
+    lines = s.split("\n")
 
     # Remove leading empty or whitespace-only lines
     while lines and not lines[0].strip():
         lines.pop(0)
 
-    if len(lines) >= 1 and lines[0].startswith('    '):
+    if len(lines) >= 1 and lines[0].startswith("    "):
         # Find the minimum indentation level
         min_indent = len(lines[0]) - len(lines[0].lstrip())
 
@@ -102,9 +111,10 @@ def cleanup_output_string(s):
         lines = [line[min_indent:] for line in lines]
 
     # Join the remaining lines back into a string
-    s = '\n'.join(lines)
+    s = "\n".join(lines)
 
     return s
+
 
 @app.command()
 def to_doc():
@@ -125,6 +135,6 @@ def to_doc():
             file_suffix = f"({last_file})"
         print(cleanup_output_string(hit.metaVariables.single.MD.text) + file_suffix)
 
+
 if __name__ == "__main__":
     app()
-
