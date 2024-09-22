@@ -1,0 +1,12 @@
+# YAML Rule is more powerful!
+# https://ast-grep.github.io/guide/rule-config.html#rule
+id: main
+language: python
+rule:
+  any:
+    - pattern: code_example($MD, $B)
+    - pattern: hd.markdown($MD)
+    - pattern: p.title($MD)
+    - pattern: p.heading($MD)
+    - pattern: docs_markdown($MD)
+
