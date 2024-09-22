@@ -14,8 +14,7 @@ from pathlib import Path
 app = typer.Typer()
 console = Console()
 
-
-ast_grep_rule = """# A rule to find the markdown to be dumped
+extract_documentation_ast_grep_rule = """# A rule to find the markdown to be dumped
 # https://ast-grep.github.io/guide/rule-config.html#rule
 id: main
 language: python
@@ -28,14 +27,26 @@ rule:
     - pattern: code_example($MD, B)
 """
 
+def run_ast_grep_scan():
+    """
+    Execute an AST-grep scan using a predefined rule.
 
-def run_ast_grep():
+    This function writes the AST-grep rule to a temporary file,
+    runs the 'sg scan' command with the rule, and returns the
+    scan results as a JSON string.
+
+    Returns:
+        str: The JSON output of the AST-grep scan.
+
+    Raises:
+        Exception: If there's an error running AST-grep.
+    """
     # write the rule to a temporary file (because I can't get inline to work)
     with tempfile.NamedTemporaryFile(
         mode="w", delete=True, suffix=".yaml"
     ) as temp_file:
         temp_file_path = temp_file.name
-        Path(temp_file_path).write_text(ast_grep_rule)
+        Path(temp_file_path).write_text(extract_documentation_ast_grep_rule)
         result = subprocess.run(
             ["sg", "scan", "--rule", temp_file_path, "--json"],
             capture_output=True,
@@ -87,7 +98,21 @@ class AstGrepHit(BaseModel):
     message: str
 
 
-def cleanup_output_string(s):
+def cleanup_markdown_for_output(s):
+    """
+    Clean up and format a string containing code or documentation.
+
+    This function performs the following operations:
+    1. Removes surrounding quotes or triple quotes if present.
+    2. Strips leading and trailing empty or whitespace-only lines.
+    3. Removes common indentation from all lines.
+
+    Args:
+        s (str): The input string to be cleaned up.
+
+    Returns:
+        str: The cleaned and formatted string.
+    """
     # if string is wrapped with " , ' or """, remove it from the front and back
     if s.startswith('"""') and s.endswith('"""'):
         s = s[3:-3]
@@ -119,8 +144,7 @@ def cleanup_output_string(s):
 @app.command()
 def to_doc():
     """Extract hyperdiv documentation from the docs codebase - run it from hyperdiv-docs/hyperdiv_docs/pages > doc.md"""
-    ic("Pulling documentation from the codebase")
-    result = run_ast_grep()
+    result = run_ast_grep_scan()
     hits = json.loads(result)
     # write to tmp.json file
     with open("tmp.json", "w") as f:
@@ -133,7 +157,7 @@ def to_doc():
         if hit.file != last_file:
             last_file = hit.file
             file_suffix = f"({last_file})"
-        print(cleanup_output_string(hit.metaVariables.single.MD.text) + file_suffix)
+        print(cleanup_markdown_for_output(hit.metaVariables.single.MD.text) + file_suffix)
 
 
 if __name__ == "__main__":
