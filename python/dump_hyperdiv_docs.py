@@ -27,6 +27,7 @@ rule:
     - pattern: code_example($MD, B)
 """
 
+
 def run_ast_grep_scan():
     """
     Execute an AST-grep scan using a predefined rule.
@@ -154,11 +155,13 @@ def extract_file_contents():
     for hit in hits:
         if hit.file not in file_content:
             file_content[hit.file] = f"# FILE: {hit.file} \n"
-        file_content[hit.file]+=(cleanup_markdown_for_output(hit.metaVariables.single.MD.text)+"\n")
+        file_content[hit.file] += (
+            cleanup_markdown_for_output(hit.metaVariables.single.MD.text) + "\n"
+        )
     return file_content
 
-def file_ordered_by_menu():
 
+def file_ordered_by_menu():
     # Clever, call list_files, then pass that to GPT when you have a picture of the menu
     # and then ask it to sort the list for you!
     # ![](https://raw.githubusercontent.com/idvorkin/ipaste/main/20240922_165631.webp)
@@ -199,12 +202,13 @@ def file_ordered_by_menu():
 
 @app.command()
 def list_files():
-    """ List all files in the documentation.
-You can ask GPT to sort these based on what the menu looks like (see filer_ordered_by_menu) """
+    """List all files in the documentation.
+    You can ask GPT to sort these based on what the menu looks like (see filer_ordered_by_menu)"""
     file_content = extract_file_contents()
     # print files in order
     for file in file_content.keys():
         print(file)
+
 
 @app.command()
 def to_docs():
@@ -214,7 +218,9 @@ def to_docs():
         ic(len(file_content.keys()), len(file_in_order))
         missing_files = set(file_content.keys()) - set(file_in_order)
         ic(missing_files)
-        print("Error: Number of files in the documentation does not match the number of files in the order list")
+        print(
+            "Error: Number of files in the documentation does not match the number of files in the order list"
+        )
         return
 
     # print files in order
