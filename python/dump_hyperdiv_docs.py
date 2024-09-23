@@ -11,7 +11,7 @@ from typing import Optional
 import tempfile
 from pathlib import Path
 
-app = typer.Typer()
+app = typer.Typer(no_args_is_help=True)
 console = Console()
 
 extract_documentation_ast_grep_rule = """# A rule to find the markdown to be dumped
@@ -141,8 +141,7 @@ def cleanup_markdown_for_output(s):
     return s
 
 
-@app.command()
-def to_doc():
+def extract_file_contents():
     """Extract hyperdiv documentation from the docs codebase - run it from hyperdiv-docs/hyperdiv_docs/pages > doc.md"""
     result = run_ast_grep_scan()
     hits = json.loads(result)
@@ -151,13 +150,76 @@ def to_doc():
         json.dump(hits, f, indent=4)
     # convert to a list of AstGrepHit objects
     hits = [AstGrepHit(**hit) for hit in hits]
-    last_file = None
+    file_content = {}
     for hit in hits:
-        file_suffix = ""
-        if hit.file != last_file:
-            last_file = hit.file
-            file_suffix = f"({last_file})"
-        print(cleanup_markdown_for_output(hit.metaVariables.single.MD.text) + file_suffix)
+        if hit.file not in file_content:
+            file_content[hit.file] = f"# FILE: {hit.file} \n"
+        file_content[hit.file]+=(cleanup_markdown_for_output(hit.metaVariables.single.MD.text)+"\n")
+    return file_content
+
+def file_ordered_by_menu():
+
+    # Clever, call list_files, then pass that to GPT when you have a picture of the menu
+    # and then ask it to sort the list for you!
+    # ![](https://raw.githubusercontent.com/idvorkin/ipaste/main/20240922_165631.webp)
+
+    file_order = """./introduction/overview.py
+    ./introduction/docs_overview.py
+    ./guide/getting_started.py
+    ./guide/components.py
+    ./guide/interactivity.py
+    ./guide/component_props.py
+    ./guide/layout.py
+    ./guide/conditional_rendering.py
+    ./guide/loops.py
+    ./guide/state.py
+    ./guide/modular_apps.py
+    ./guide/tasks.py
+    ./guide/pages_and_navigation.py
+    ./guide/using_the_app_template.py
+    ./guide/matplotlib_charts.py
+    ./guide/static_assets.py
+    ./guide/deploying.py
+    ./guide/plugins.py
+    ./extending_hyperdiv/overview.py
+    ./extending_hyperdiv/plugins.py
+    ./extending_hyperdiv/custom_assets.py
+    ./extending_hyperdiv/built_in_components.py
+    ./extending_hyperdiv/new_components.py
+    ./reference/cli.py
+    ./reference/design_tokens.py
+    ./reference/prop_types.py
+    ./reference/icons.py
+    ./reference/components.py
+    ./reference/env_variables.py"""
+    # remove leading spaces
+    file_order = [file.strip() for file in file_order.split("\n")]
+    return file_order
+
+
+@app.command()
+def list_files():
+    """ List all files in the documentation.
+You can ask GPT to sort these based on what the menu looks like (see filer_ordered_by_menu) """
+    file_content = extract_file_contents()
+    # print files in order
+    for file in file_content.keys():
+        print(file)
+
+@app.command()
+def to_docs():
+    file_content = extract_file_contents()
+    file_in_order = file_ordered_by_menu()
+    if len(file_content.keys()) != len(file_in_order):
+        ic(len(file_content.keys()), len(file_in_order))
+        missing_files = set(file_content.keys()) - set(file_in_order)
+        ic(missing_files)
+        print("Error: Number of files in the documentation does not match the number of files in the order list")
+        return
+
+    # print files in order
+    for file in file_in_order:
+        print(file_content[file])
 
 
 if __name__ == "__main__":
