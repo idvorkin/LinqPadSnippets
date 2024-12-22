@@ -32,8 +32,6 @@ with open(Path.home()/"gits/igor2/secretBox.json") as json_data:
     PASSWORD = SECRETS["RingAccountPassword"]
 
 from pprint import pprint
-from ring_doorbell import Ring, Auth
-from oauthlib.oauth2 import MissingTokenError
 
 cache_file = Path("test_token.cache")
 
@@ -92,11 +90,13 @@ def upload_ring_event(idx, ring_event) -> None:
             is_404 = "404" in str(exception)
             if is_404:
                 # Skip on 404
-                ic("404 Failure, skipping")
+                seconds_to_sleep = 30
+                ic("404 Failure, waiting seconds inc ase I'm in timeout",seconds_to_sleep)
                 ic(exception)
 
-                time.sleep(1)
-                return
+                time.sleep(seconds_to_sleep)
+                # I think the issue is some cahced token is stale - re throw
+                raise exception
             else:
                 # Print all exception attributes
                 ic({
