@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "idvorkin_linqpad_snippets"
+version = "0.1.0"
+dependencies = [
+    "ring_doorbell>=0.7.0",
+    "pendulum",
+    "pdfrw",
+    "schedule",
+    "prospector",
+    "rope",
+    "yapf",
+    "ftfy", 
+    "pylinkvalidator",
+    "ipython",
+    "biplist",
+    "black",
+    "icecream",
+    "beautifulsoup4",
+    "mypy",
+    "pyfiglet",
+    "click",
+    "scrapy",
+    "typer"
+]

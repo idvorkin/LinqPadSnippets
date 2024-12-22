@@ -1,3 +1,6 @@
+#!python3
+
+
 # Ring Video Downloader.
 #
 # Ring is a subscription service, which only stores your videos for 90 days. This script will download all videos from ring into OneDrive
@@ -10,7 +13,7 @@ import time
 import itertools
 import pendulum
 from pathlib import Path
-from ring_doorbell import Ring, Auth
+from ring_doorbell import Ring, Auth, Requires2FAError
 import time
 import sys
 import pdb, traceback, sys
@@ -21,7 +24,8 @@ import time
 from typing import List
 
 PASSWORD = "replaced_from_secret_box"
-with open("/gits/igor2/secretBox.json") as json_data:
+ic(Path.home())
+with open(Path.home()/"gits/igor2/secretBox.json") as json_data:
 # with open("/home/ec2-user/gits/igor2/secretBox.json") as json_data:
     SECRETS = json.load(json_data)
     PASSWORD = SECRETS["RingAccountPassword"]
@@ -52,7 +56,7 @@ else:
     auth = Auth(app_name, None, token_updated)
     try:
         auth.fetch_token(username, password)
-    except MissingTokenError:
+    except Requires2FAError:
         auth.fetch_token(username, password, otp_callback())
 
 ring = Ring(auth)
@@ -70,8 +74,7 @@ def make_directory_if_not_exists(path):
 
 
 # Only works on basement computer for onedrive make better
-PATH_BASE = "/users/idvor/onedrive/ring/date/"
-
+PATH_BASE = Path.home()/"onedrive/ring/date/"
 
 def upload_ring_event(idx, ring_event) -> None:
     recording_id = ring_event["id"]
