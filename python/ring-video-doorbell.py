@@ -14,6 +14,7 @@ import itertools
 import pendulum
 from pathlib import Path
 from ring_doorbell import Ring, Auth, Requires2FAError
+from ring_doorbell.exceptions import RingError
 import time
 import sys
 import pdb, traceback, sys
@@ -87,14 +88,22 @@ def upload_ring_event(idx, ring_event) -> None:
         print("Downloading")
         try:
             doorbell.recording_download(recording_id, date_path_kind_id)
-        # except urllib.error.HTTPError as exception:
-        except requests.exceptions.HTTPError as exception:
-            # Skip on 404
-            ic("Failure, skipping")
-            ic(exception)
-            time.sleep(1)
-            return
+        except RingError as exception:
+            is_404 = "404" in str(exception)
+            if is_404:
+                # Skip on 404
+                ic("404 Failure, skipping")
+                ic(exception)
 
+                time.sleep(1)
+                return
+            else:
+                # Print all exception attributes
+                ic({
+                    'exception_type': type(exception).__name__,
+                    'message': str(exception),
+                    'attributes': {attr: getattr(exception, attr) for attr in dir(exception) if not attr.startswith('_')},
+                })
 
     else:
         print("Already Present")
