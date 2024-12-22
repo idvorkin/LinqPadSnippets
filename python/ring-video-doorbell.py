@@ -79,7 +79,7 @@ PATH_BASE = Path.home()/"onedrive/ring/date/"
 def upload_ring_event(idx, ring_event) -> None:
     recording_id = ring_event["id"]
     date = pendulum.instance(ring_event["created_at"]).in_tz("America/Vancouver")
-    date_path_kind = f"{PATH_BASE}{date.date()}/{ring_event['kind']}/"
+    date_path_kind = f"{PATH_BASE}/{date.date()}/{ring_event['kind']}/"
     make_directory_if_not_exists(date_path_kind)
     date_path_kind_id = f"{date_path_kind}{date.hour}-{date.minute}-{recording_id}.mp4"
     print(f"{idx}: {date_path_kind_id}")
