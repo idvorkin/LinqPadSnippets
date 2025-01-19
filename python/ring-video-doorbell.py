@@ -1,10 +1,22 @@
-#!python3
+#!uv run
 
 
 # Ring Video Downloader.
 #
 # Ring is a subscription service, which only stores your videos for 90 days. This script will download all videos from ring into OneDrive
 # so they will be saved for ever.
+
+ # /// script
+ # requires-python = ">=3.12"
+ # dependencies = [
+ #     "pendulum",
+ #     "ring-doorbell",
+ #     "schedule",
+ #     "icecream",
+ #     "pydantic"
+ # ]
+ # ///
+
 
 import json
 import os
