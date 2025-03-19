@@ -83,8 +83,6 @@ class RingDownloader:
         self.app_name = app_name
         self.cache_file = cache_file
         self.base_path = base_path
-        self.total_failures = 0  # Track total failures across all files
-        self.max_total_failures = 10  # Exit after this many total failures
 
     def custom_before_sleep_callback(self, retry_state):
         """Custom before_sleep callback that logs detailed timing information."""
@@ -188,30 +186,13 @@ class RingDownloader:
         """Collect all events using the retryable history batch function"""
         events = []
         oldest_id = 0
-        max_attempts = 3
-        attempt = 0
         
-        while attempt < max_attempts:
-            try:
-                while True:
-                    tmp = await self.get_history_batch(oldest_id)
-                    if not tmp:
-                        break
-                    events.extend(tmp)
-                    oldest_id = tmp[-1]["id"]
-                # If we get here without exceptions, we're done
+        while True:
+            tmp = await self.get_history_batch(oldest_id)
+            if not tmp:
                 break
-            except Exception as e:
-                attempt += 1
-                now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
-                if attempt >= max_attempts:
-                    print(f"[{now}] Failed to get complete history after {max_attempts} attempts: {str(e)}")
-                    print(f"[{now}] Using events collected so far: {len(events)}")
-                else:
-                    print(f"[{now}] History collection attempt {attempt}/{max_attempts} failed: {str(e)}")
-                    print(f"[{now}] Retrying complete history collection...")
-                    # Wait before retrying the whole collection process
-                    await asyncio.sleep(5)
+            events.extend(tmp)
+            oldest_id = tmp[-1]["id"]
         
         return events
 
@@ -223,19 +204,8 @@ class RingDownloader:
         # Download in reverse order to make sure we get the old events
         # before they are expired
         
-        # Reset total failures counter before starting downloads
-        self.total_failures = 0
-        
         for idx, event in enumerate(reversed(events)):
-            try:
-                await self.upload_ring_event(idx, event, total_events)
-            except Exception as e:
-                now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
-                print(f"[{now}] Failed to download event {idx}/{total_events}: {str(e)}")
-                self.total_failures += 1
-                if self.total_failures >= self.max_total_failures:
-                    print(f"[{now}] Maximum total failures ({self.max_total_failures}) reached, stopping download")
-                    break
+            await self.upload_ring_event(idx, event, total_events)
 
     @retry(
         stop=stop_after_attempt(10),
