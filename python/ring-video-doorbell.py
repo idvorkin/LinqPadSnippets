@@ -91,7 +91,11 @@ class RingDownloader:
             now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
             sleep_time = retry_state.next_action.sleep
             
-            print(f"[{now}] Retry {retry_state.attempt_number}/{retry_state.retry_object.stop.max_attempt_number} - sleeping for {sleep_time:.2f}s due to: {type(exception).__name__}: {str(exception)}")
+            print(f"[{now}] Retry {retry_state.attempt_number}/{retry_state.retry_object.stop.max_attempt_number} - SLEEPING for {sleep_time:.2f}s due to: {type(exception).__name__}: {str(exception)}")
+            
+            # Log the expected wake-up time
+            wake_time = (datetime.datetime.now() + datetime.timedelta(seconds=sleep_time)).strftime('%H:%M:%S.%f')[:-3]
+            print(f"[{now}] Expected wake-up time: {wake_time}")
             
             # For certain errors, reinitialize the connection
             if isinstance(exception, RingError) and "401" in str(exception):
