@@ -43,6 +43,25 @@ import datetime
 logging.basicConfig(level=logging.INFO, format='%(asctime)s.%(msecs)03d %(message)s', datefmt='%H:%M:%S')
 logger = logging.getLogger(__name__)
 
+def custom_before_sleep_callback(retry_state):
+    """Custom before_sleep callback that logs detailed timing information and ensures sleep."""
+    exception = retry_state.outcome.exception()
+    if exception:
+        now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
+        sleep_time = retry_state.next_action.sleep
+        
+        print(f"[{now}] Retry {retry_state.attempt_number}/{retry_state.retry_object.stop.max_attempt_number} - SLEEPING for {sleep_time:.2f}s due to: {type(exception).__name__}: {str(exception)}")
+        
+        # Log the expected wake-up time
+        wake_time = (datetime.datetime.now() + datetime.timedelta(seconds=sleep_time)).strftime('%H:%M:%S.%f')[:-3]
+        print(f"[{now}] Expected wake-up time: {wake_time}")
+        
+        # For certain errors, reinitialize the connection
+        if isinstance(exception, RingError) and "401" in str(exception):
+            print(f"[{now}] Unauthorized error detected, reinitializing Ring connection")
+        elif isinstance(exception, RingError) and "404" in str(exception):
+            print(f"[{now}] Transient 404 error detected, will retry after sleep")
+
 def retry_ring_or_404(exception):
     """Retry if exception is RingError or contains '404' in the error message."""
     if isinstance(exception, RingError):
@@ -84,30 +103,12 @@ class RingDownloader:
         self.cache_file = cache_file
         self.base_path = base_path
 
-    def custom_before_sleep_callback(self, retry_state):
-        """Custom before_sleep callback that logs detailed timing information and ensures sleep."""
-        exception = retry_state.outcome.exception()
-        if exception:
-            now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
-            sleep_time = retry_state.next_action.sleep
-            
-            print(f"[{now}] Retry {retry_state.attempt_number}/{retry_state.retry_object.stop.max_attempt_number} - SLEEPING for {sleep_time:.2f}s due to: {type(exception).__name__}: {str(exception)}")
-            
-            # Log the expected wake-up time
-            wake_time = (datetime.datetime.now() + datetime.timedelta(seconds=sleep_time)).strftime('%H:%M:%S.%f')[:-3]
-            print(f"[{now}] Expected wake-up time: {wake_time}")
-            
-            # For certain errors, reinitialize the connection
-            if isinstance(exception, RingError) and "401" in str(exception):
-                print(f"[{now}] Unauthorized error detected, reinitializing Ring connection")
-            elif isinstance(exception, RingError) and "404" in str(exception):
-                print(f"[{now}] Transient 404 error detected, will retry after sleep")
 
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, max=10),
         retry=retry_if_exception_type(RingError),
-        before_sleep=custom_before_sleep_callback,
+        before_sleep=before_sleep_log(logger, logging.INFO),
     )
     async def _initialize_ring(self):
         """Initialize Ring authentication and device setup. Can be called again during retries."""
