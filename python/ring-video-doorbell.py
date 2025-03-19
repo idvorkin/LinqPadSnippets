@@ -35,6 +35,17 @@ from tenacity import (
     retry_if_exception_type,
 )
 
+def retry_ring_or_404(exception):
+    """Retry if exception is RingError or contains '404' in the error message."""
+    if isinstance(exception, RingError):
+        # Check if the error message contains 404
+        if "404" in str(exception):
+            ic("Retrying due to 404 error")
+            return True
+        # Otherwise, retry for any RingError
+        return True
+    return False
+
 T = TypeVar("T")
 
 
@@ -95,7 +106,7 @@ class RingDownloader:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, max=10),
-        retry=retry_if_exception_type(RingError),
+        retry=retry_ring_or_404,
         before_sleep=lambda rs: rs.retry_object.kwargs["self"]._before_sleep_callback(
             rs
         ),
@@ -143,7 +154,7 @@ class RingDownloader:
     @retry(
         stop=stop_after_attempt(4),
         wait=wait_exponential(multiplier=1.0, max=60.0, exp_base=2),
-        retry=retry_if_exception_type(RingError),
+        retry=retry_ring_or_404,
         before_sleep=lambda rs: rs.retry_object.kwargs["self"]._before_sleep_callback(
             rs
         ),
@@ -182,7 +193,7 @@ class RingDownloader:
     @retry(
         stop=stop_after_attempt(4),
         wait=wait_exponential(multiplier=1.0, max=60.0, exp_base=2),
-        retry=retry_if_exception_type(RingError),
+        retry=retry_ring_or_404,
         before_sleep=lambda rs: rs.retry_object.kwargs["self"]._before_sleep_callback(
             rs
         ),
@@ -217,7 +228,7 @@ class RingDownloader:
     @retry(
         stop=stop_after_attempt(10),
         wait=wait_exponential(multiplier=2.0, max=120.0, exp_base=2),
-        retry=retry_if_exception_type(RingError),
+        retry=retry_ring_or_404,
         before_sleep=lambda rs: rs.retry_object.kwargs["self"]._before_sleep_callback(
             rs
         ),
