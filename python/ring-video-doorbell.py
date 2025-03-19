@@ -33,14 +33,22 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential,
     retry_if_exception_type,
+    before_sleep_log,
+    RetryCallState,
 )
+import logging
+import time
+import datetime
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s.%(msecs)03d %(message)s', datefmt='%H:%M:%S')
+logger = logging.getLogger(__name__)
 
 def retry_ring_or_404(exception):
     """Retry if exception is RingError or contains '404' in the error message."""
     if isinstance(exception, RingError):
         # Check if the error message contains 404
         if "404" in str(exception):
-            ic("Retrying due to 404 error")
+            logger.info("Retrying due to 404 error")
             return True
         # Otherwise, retry for any RingError
         return True
@@ -78,38 +86,24 @@ class RingDownloader:
         self.total_failures = 0  # Track total failures across all files
         self.max_total_failures = 10  # Exit after this many total failures
 
-    # Custom before_sleep callback for better logging
-    def _before_sleep_callback(self, retry_state):
+    def custom_before_sleep_callback(self, retry_state):
+        """Custom before_sleep callback that logs detailed timing information."""
         exception = retry_state.outcome.exception()
         if exception:
-            if isinstance(exception, RingError):
-                ic(
-                    {
-                        "exception_type": type(exception).__name__,
-                        "message": str(exception),
-                        "attempt": retry_state.attempt_number,
-                        "max_attempts": retry_state.retry_object.stop.max_attempt_number,
-                    }
-                )
-
-                # For certain errors, reinitialize the connection
-                if "401" in str(exception):
-                    ic("Unauthorized error detected, reinitializing Ring connection")
-                    asyncio.create_task(self._initialize_ring())
-            else:
-                ic(f"Exception: {type(exception).__name__}: {str(exception)}")
-
-            ic(
-                f"Retry {retry_state.attempt_number}/{retry_state.retry_object.stop.max_attempt_number} due to: {type(exception).__name__}: {str(exception)}"
-            )
+            now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
+            sleep_time = retry_state.next_action.sleep
+            
+            print(f"[{now}] Retry {retry_state.attempt_number}/{retry_state.retry_object.stop.max_attempt_number} - sleeping for {sleep_time:.2f}s due to: {type(exception).__name__}: {str(exception)}")
+            
+            # For certain errors, reinitialize the connection
+            if isinstance(exception, RingError) and "401" in str(exception):
+                print(f"[{now}] Unauthorized error detected, reinitializing Ring connection")
 
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, max=10),
-        retry=retry_ring_or_404,
-        before_sleep=lambda rs: rs.retry_object.kwargs["self"]._before_sleep_callback(
-            rs
-        ),
+        retry=retry_if_exception_type(RingError),
+        before_sleep=custom_before_sleep_callback,
     )
     async def _initialize_ring(self):
         """Initialize Ring authentication and device setup. Can be called again during retries."""
@@ -155,9 +149,7 @@ class RingDownloader:
         stop=stop_after_attempt(4),
         wait=wait_exponential(multiplier=1.0, max=60.0, exp_base=2),
         retry=retry_ring_or_404,
-        before_sleep=lambda rs: rs.retry_object.kwargs["self"]._before_sleep_callback(
-            rs
-        ),
+        before_sleep=custom_before_sleep_callback,
         reraise=False,  # To enable skipping after max attempts
     )
     async def upload_ring_event(
@@ -170,33 +162,33 @@ class RingDownloader:
         date_path_kind_id = (
             f"{date_path_kind}{date.hour}-{date.minute}-{recording_id}.mp4"
         )
-        print(f"{idx}/{total_events}: {date_path_kind_id}")
+        now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
+        print(f"[{now}] {idx}/{total_events}: {date_path_kind_id}")
         if not Path(date_path_kind_id).is_file():
-            print("Downloading")
+            print(f"[{now}] Downloading")
             try:
                 await self.doorbell.async_recording_download(
                     recording_id, date_path_kind_id
                 )
             except Exception as e:
+                now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
                 print(
-                    f"Skipped downloading {date_path_kind_id} after multiple failures: {str(e)}"
+                    f"[{now}] Skipped downloading {date_path_kind_id} after multiple failures: {str(e)}"
                 )
                 self.total_failures += 1
                 if self.total_failures >= self.max_total_failures:
-                    ic("Maximum total failures reached, exiting")
+                    print(f"[{now}] Maximum total failures reached, exiting")
                     raise RuntimeError(
                         f"Maximum total failures ({self.max_total_failures}) reached"
                     )
         else:
-            print("Already Present")
+            print(f"[{now}] Already Present")
 
     @retry(
         stop=stop_after_attempt(4),
         wait=wait_exponential(multiplier=1.0, max=60.0, exp_base=2),
         retry=retry_ring_or_404,
-        before_sleep=lambda rs: rs.retry_object.kwargs["self"]._before_sleep_callback(
-            rs
-        ),
+        before_sleep=custom_before_sleep_callback,
         reraise=False,
     )
     async def get_all_events(self) -> List[Dict[str, Any]]:
@@ -210,8 +202,9 @@ class RingDownloader:
                 events.extend(tmp)
                 oldest_id = tmp[-1]["id"]
             except Exception as e:
-                ic(
-                    f"Failed to get history: {str(e)}, using events collected so far: {len(events)}"
+                now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
+                print(
+                    f"[{now}] Failed to get history: {str(e)}, using events collected so far: {len(events)}"
                 )
                 break
         return events
@@ -219,7 +212,8 @@ class RingDownloader:
     async def download_all(self) -> None:
         events = await self.get_all_events()
         total_events = len(events)
-        ic(total_events)
+        now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
+        print(f"[{now}] Total events to process: {total_events}")
         # Download in reverse order to make sure we get the old events
         # before they are expired
         for idx, event in enumerate(reversed(events)):
@@ -229,16 +223,16 @@ class RingDownloader:
         stop=stop_after_attempt(10),
         wait=wait_exponential(multiplier=2.0, max=120.0, exp_base=2),
         retry=retry_ring_or_404,
-        before_sleep=lambda rs: rs.retry_object.kwargs["self"]._before_sleep_callback(
-            rs
-        ),
+        before_sleep=custom_before_sleep_callback,
         reraise=True,
     )
     async def print_timestamp_and_download(self) -> None:
         """Execute the download process with retries for the entire operation."""
-        print(f"Downloading @ {pendulum.now()}")
+        now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
+        print(f"[{now}] Downloading @ {pendulum.now()}")
         await self.download_all()
-        print(f"Done @ {pendulum.now()}")
+        now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
+        print(f"[{now}] Done @ {pendulum.now()}")
 
 
 async def main() -> None:
