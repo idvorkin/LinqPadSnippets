@@ -150,7 +150,7 @@ class RingDownloader:
         wait=wait_exponential(multiplier=1.0, max=60.0, exp_base=2),
         retry=retry_ring_or_404,
         before_sleep=custom_before_sleep_callback,
-        reraise=False,  # To enable skipping after max attempts
+        reraise=True,  # Changed to True to ensure exceptions are properly propagated
     )
     async def upload_ring_event(
         self, idx: int, ring_event: dict, total_events: int
@@ -166,21 +166,10 @@ class RingDownloader:
         print(f"[{now}] {idx}/{total_events}: {date_path_kind_id}")
         if not Path(date_path_kind_id).is_file():
             print(f"[{now}] Downloading")
-            try:
-                await self.doorbell.async_recording_download(
-                    recording_id, date_path_kind_id
-                )
-            except Exception as e:
-                now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
-                print(
-                    f"[{now}] Skipped downloading {date_path_kind_id} after multiple failures: {str(e)}"
-                )
-                self.total_failures += 1
-                if self.total_failures >= self.max_total_failures:
-                    print(f"[{now}] Maximum total failures reached, exiting")
-                    raise RuntimeError(
-                        f"Maximum total failures ({self.max_total_failures}) reached"
-                    )
+            # Let the retry decorator handle exceptions
+            await self.doorbell.async_recording_download(
+                recording_id, date_path_kind_id
+            )
         else:
             print(f"[{now}] Already Present")
 
@@ -189,24 +178,41 @@ class RingDownloader:
         wait=wait_exponential(multiplier=1.0, max=60.0, exp_base=2),
         retry=retry_ring_or_404,
         before_sleep=custom_before_sleep_callback,
-        reraise=False,
+        reraise=True,  # Changed to True to ensure exceptions are properly propagated
     )
+    async def get_history_batch(self, oldest_id: int = 0) -> List[Dict[str, Any]]:
+        """Get a batch of history events with proper retry handling"""
+        return await self.doorbell.async_history(older_than=oldest_id)
+        
     async def get_all_events(self) -> List[Dict[str, Any]]:
+        """Collect all events using the retryable history batch function"""
         events = []
         oldest_id = 0
-        while True:
+        max_attempts = 3
+        attempt = 0
+        
+        while attempt < max_attempts:
             try:
-                tmp = await self.doorbell.async_history(older_than=oldest_id)
-                if not tmp:
-                    break
-                events.extend(tmp)
-                oldest_id = tmp[-1]["id"]
-            except Exception as e:
-                now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
-                print(
-                    f"[{now}] Failed to get history: {str(e)}, using events collected so far: {len(events)}"
-                )
+                while True:
+                    tmp = await self.get_history_batch(oldest_id)
+                    if not tmp:
+                        break
+                    events.extend(tmp)
+                    oldest_id = tmp[-1]["id"]
+                # If we get here without exceptions, we're done
                 break
+            except Exception as e:
+                attempt += 1
+                now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
+                if attempt >= max_attempts:
+                    print(f"[{now}] Failed to get complete history after {max_attempts} attempts: {str(e)}")
+                    print(f"[{now}] Using events collected so far: {len(events)}")
+                else:
+                    print(f"[{now}] History collection attempt {attempt}/{max_attempts} failed: {str(e)}")
+                    print(f"[{now}] Retrying complete history collection...")
+                    # Wait before retrying the whole collection process
+                    await asyncio.sleep(5)
+        
         return events
 
     async def download_all(self) -> None:
@@ -216,8 +222,20 @@ class RingDownloader:
         print(f"[{now}] Total events to process: {total_events}")
         # Download in reverse order to make sure we get the old events
         # before they are expired
+        
+        # Reset total failures counter before starting downloads
+        self.total_failures = 0
+        
         for idx, event in enumerate(reversed(events)):
-            await self.upload_ring_event(idx, event, total_events)
+            try:
+                await self.upload_ring_event(idx, event, total_events)
+            except Exception as e:
+                now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
+                print(f"[{now}] Failed to download event {idx}/{total_events}: {str(e)}")
+                self.total_failures += 1
+                if self.total_failures >= self.max_total_failures:
+                    print(f"[{now}] Maximum total failures ({self.max_total_failures}) reached, stopping download")
+                    break
 
     @retry(
         stop=stop_after_attempt(10),
