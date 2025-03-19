@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 def retry_ring_or_404(exception):
     """Retry if exception is RingError or contains '404' in the error message."""
     if isinstance(exception, RingError):
-        # Check if the error message contains 404
+        # Always retry for 404 errors as they are transient
         if "404" in str(exception):
             logger.info("Retrying due to 404 error")
             return True
@@ -85,7 +85,7 @@ class RingDownloader:
         self.base_path = base_path
 
     def custom_before_sleep_callback(self, retry_state):
-        """Custom before_sleep callback that logs detailed timing information."""
+        """Custom before_sleep callback that logs detailed timing information and ensures sleep."""
         exception = retry_state.outcome.exception()
         if exception:
             now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
@@ -96,6 +96,8 @@ class RingDownloader:
             # For certain errors, reinitialize the connection
             if isinstance(exception, RingError) and "401" in str(exception):
                 print(f"[{now}] Unauthorized error detected, reinitializing Ring connection")
+            elif isinstance(exception, RingError) and "404" in str(exception):
+                print(f"[{now}] Transient 404 error detected, will retry after sleep")
 
     @retry(
         stop=stop_after_attempt(3),
@@ -144,8 +146,8 @@ class RingDownloader:
             os.makedirs(path)
 
     @retry(
-        stop=stop_after_attempt(4),
-        wait=wait_exponential(multiplier=1.0, max=60.0, exp_base=2),
+        stop=stop_after_attempt(6),  # Increase max attempts
+        wait=wait_exponential(multiplier=2.0, max=120.0, exp_base=2),  # Longer waits
         retry=retry_ring_or_404,
         before_sleep=custom_before_sleep_callback,
         reraise=True,  # Changed to True to ensure exceptions are properly propagated
@@ -172,8 +174,8 @@ class RingDownloader:
             print(f"[{now}] Already Present")
 
     @retry(
-        stop=stop_after_attempt(4),
-        wait=wait_exponential(multiplier=1.0, max=60.0, exp_base=2),
+        stop=stop_after_attempt(6),  # Increase max attempts
+        wait=wait_exponential(multiplier=2.0, max=120.0, exp_base=2),  # Longer waits
         retry=retry_ring_or_404,
         before_sleep=custom_before_sleep_callback,
         reraise=True,  # Changed to True to ensure exceptions are properly propagated
@@ -208,8 +210,8 @@ class RingDownloader:
             await self.upload_ring_event(idx, event, total_events)
 
     @retry(
-        stop=stop_after_attempt(10),
-        wait=wait_exponential(multiplier=2.0, max=120.0, exp_base=2),
+        stop=stop_after_attempt(12),  # Increase max attempts
+        wait=wait_exponential(multiplier=3.0, max=180.0, exp_base=2),  # Even longer waits for the full operation
         retry=retry_ring_or_404,
         before_sleep=custom_before_sleep_callback,
         reraise=True,
