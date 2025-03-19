@@ -13,7 +13,8 @@
  #     "ring-doorbell",
  #     "schedule",
  #     "icecream",
- #     "pydantic"
+ #     "pydantic",
+ #     "tenacity"
  # ]
  # ///
 
@@ -30,8 +31,31 @@ from ring_doorbell.exceptions import RingError
 import sys
 import pdb, traceback, sys
 from icecream import ic
-from typing import List
+from typing import List, Dict, Any, Optional, Callable, TypeVar, Awaitable
 import asyncio
+import random
+import logging
+from pydantic import BaseModel
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+    RetryError,
+    before_sleep_log,
+    after_log
+)
+
+T = TypeVar('T')
+
+class RetryConfig(BaseModel):
+    max_attempts: int = 5
+    base_delay: float = 1.0
+    max_delay: float = 60.0
+    jitter: bool = True
+    retry_on_exceptions: List[type] = [RingError]
+    retry_on_status_codes: List[str] = ["404"]
+    skip_after_max_attempts: bool = False  # New flag to determine if we should skip or raise after max attempts
 
 class RingDownloader:
     def __init__(self, username: str, password: str, app_name: str, cache_file: Path, base_path: Path):
@@ -40,7 +64,36 @@ class RingDownloader:
         self.app_name = app_name
         self.cache_file = cache_file
         self.base_path = base_path
+        self.total_failures = 0  # Track total failures across all files
+        self.max_total_failures = 10  # Exit after this many total failures
 
+    # Custom before_sleep callback for better logging
+    def _before_sleep_callback(self, retry_state):
+        exception = retry_state.outcome.exception()
+        if exception:
+            if isinstance(exception, RingError):
+                ic({
+                    'exception_type': type(exception).__name__,
+                    'message': str(exception),
+                    'attempt': retry_state.attempt_number,
+                    'max_attempts': retry_state.retry_object.stop.max_attempt_number
+                })
+                
+                # For certain errors, reinitialize the connection
+                if "401" in str(exception):
+                    ic("Unauthorized error detected, reinitializing Ring connection")
+                    asyncio.create_task(self._initialize_ring())
+            else:
+                ic(f"Exception: {type(exception).__name__}: {str(exception)}")
+            
+            ic(f"Retry {retry_state.attempt_number}/{retry_state.retry_object.stop.max_attempt_number} due to: {type(exception).__name__}: {str(exception)}")
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, max=10),
+        retry=retry_if_exception_type(RingError),
+        before_sleep=lambda rs: rs.retry_object.kwargs['self']._before_sleep_callback(rs)
+    )
     async def _initialize_ring(self):
         """Initialize Ring authentication and device setup. Can be called again during retries."""
         self.auth = await self._setup_auth()
@@ -75,6 +128,13 @@ class RingDownloader:
         if not os.path.exists(path):
             os.makedirs(path)
 
+    @retry(
+        stop=stop_after_attempt(4),
+        wait=wait_exponential(multiplier=1.0, max=60.0, exp_base=2),
+        retry=retry_if_exception_type(RingError),
+        before_sleep=lambda rs: rs.retry_object.kwargs['self']._before_sleep_callback(rs),
+        reraise=False  # To enable skipping after max attempts
+    )
     async def upload_ring_event(self, idx: int, ring_event: dict, total_events: int) -> None:
         recording_id = ring_event["id"]
         date = pendulum.instance(ring_event["created_at"]).in_tz("America/Vancouver")
@@ -84,39 +144,37 @@ class RingDownloader:
         print(f"{idx}/{total_events}: {date_path_kind_id}")
         if not Path(date_path_kind_id).is_file():
             print("Downloading")
-            max_retries = 4
-            for attempt in range(max_retries):
-                try:
-                    await self.doorbell.async_recording_download(recording_id, date_path_kind_id)
-                    break
-                except RingError as exception:
-                    is_404 = "404" in str(exception)
-                    if is_404:
-                        if attempt < max_retries - 1:  # Don't sleep on last attempt
-                            seconds_to_sleep = 1.5
-                            ic("404 Failure, waiting before retry", attempt, seconds_to_sleep)
-                            await asyncio.sleep(seconds_to_sleep)
-                        else:
-                            raise exception
-                    else:
-                        ic({
-                            'exception_type': type(exception).__name__,
-                            'message': str(exception),
-                            'attributes': {attr: getattr(exception, attr) for attr in dir(exception) if not attr.startswith('_')},
-                        })
-                        raise exception
+            try:
+                await self.doorbell.async_recording_download(recording_id, date_path_kind_id)
+            except Exception as e:
+                print(f"Skipped downloading {date_path_kind_id} after multiple failures: {str(e)}")
+                self.total_failures += 1
+                if self.total_failures >= self.max_total_failures:
+                    ic("Maximum total failures reached, exiting")
+                    raise RuntimeError(f"Maximum total failures ({self.max_total_failures}) reached")
         else:
             print("Already Present")
 
-    async def get_all_events(self) -> List:
+    @retry(
+        stop=stop_after_attempt(4),
+        wait=wait_exponential(multiplier=1.0, max=60.0, exp_base=2),
+        retry=retry_if_exception_type(RingError),
+        before_sleep=lambda rs: rs.retry_object.kwargs['self']._before_sleep_callback(rs),
+        reraise=False
+    )
+    async def get_all_events(self) -> List[Dict[str, Any]]:
         events = []
         oldest_id = 0
         while True:
-            tmp = await self.doorbell.async_history(older_than=oldest_id)
-            if not tmp:
+            try:
+                tmp = await self.doorbell.async_history(older_than=oldest_id)
+                if not tmp:
+                    break
+                events.extend(tmp)
+                oldest_id = tmp[-1]["id"]
+            except Exception as e:
+                ic(f"Failed to get history: {str(e)}, using events collected so far: {len(events)}")
                 break
-            events.extend(tmp)
-            oldest_id = tmp[-1]["id"]
         return events
 
     async def download_all(self) -> None:
@@ -128,19 +186,19 @@ class RingDownloader:
         for idx, event in enumerate(reversed(events)):
             await self.upload_ring_event(idx, event, total_events)
 
+    @retry(
+        stop=stop_after_attempt(10),
+        wait=wait_exponential(multiplier=2.0, max=120.0, exp_base=2),
+        retry=retry_if_exception_type(RingError),
+        before_sleep=lambda rs: rs.retry_object.kwargs['self']._before_sleep_callback(rs),
+        reraise=True
+    )
     async def print_timestamp_and_download(self) -> None:
-        for retry in range(1000):
-            try:
-                print(f"Downloading @ {pendulum.now()}")
-                await self.download_all()
-                print(f"Done @ {pendulum.now()}")
-                return
-            except:
-                ic(sys.exc_info()[0])
-                seconds = 1
-                print(f"sleeping {seconds} seconds before retry: {retry}")
-                await asyncio.sleep(seconds)
-                await self._initialize_ring()
+        """Execute the download process with retries for the entire operation."""
+        print(f"Downloading @ {pendulum.now()}")
+        await self.download_all()
+        print(f"Done @ {pendulum.now()}")
+            
 
 async def main() -> None:
     with open(Path.home()/"gits/igor2/secretBox.json") as json_data:
@@ -159,6 +217,10 @@ async def main() -> None:
     nightly_execution_time = "02:00"
     print(f"Download scheduled every day @ {nightly_execution_time}")
     await downloader.print_timestamp_and_download()
+    # Schedule daily execution
+    schedule.every().day.at(nightly_execution_time).do(
+        lambda: asyncio.create_task(downloader.print_timestamp_and_download())
+    )
 
     while True:
         schedule.run_pending()
