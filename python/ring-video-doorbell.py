@@ -44,6 +44,15 @@ import datetime
 from rich.console import Console
 from rich.theme import Theme
 
+# Retry configuration constants
+MAX_RING_INIT_ATTEMPTS = 4
+MAX_HISTORY_BATCH_ATTEMPTS = 4
+MAX_VIDEO_DOWNLOAD_ATTEMPTS = 4
+RETRY_BASE_DELAY = 1.0
+RETRY_MAX_DELAY = 15.0
+RETRY_MULTIPLIER = 2.0
+HISTORY_RETRY_MULTIPLIER = 3.0
+
 # Create a custom theme for rich
 custom_theme = Theme({
     "info": "cyan",
@@ -192,8 +201,8 @@ class RingDownloader:
 
 
     @retry(
-        stop=stop_after_attempt(4),
-        wait=wait_exponential(multiplier=2.0, min=1.0, max=15.0, exp_base=2),
+        stop=stop_after_attempt(MAX_RING_INIT_ATTEMPTS),
+        wait=wait_exponential(multiplier=RETRY_MULTIPLIER, min=RETRY_BASE_DELAY, max=RETRY_MAX_DELAY, exp_base=2),
         retry=retry_ring_or_404,
         before_sleep=custom_before_sleep_callback,
         reraise=True,
@@ -259,7 +268,7 @@ class RingDownloader:
 
             # Manual retry logic with explicit exception handling
             attempt_count = 1
-            max_attempts = 3
+            max_attempts = MAX_VIDEO_DOWNLOAD_ATTEMPTS
 
             while attempt_count <= max_attempts:
                 try:
@@ -284,7 +293,7 @@ class RingDownloader:
 
                         if attempt_count < max_attempts:
                             # Calculate wait time with exponential backoff
-                            wait_time = min(2 ** (attempt_count - 1) * 3, 15)
+                            wait_time = min(2 ** (attempt_count - 1) * HISTORY_RETRY_MULTIPLIER, RETRY_MAX_DELAY)
                             console.print(f"[timestamp][{now}][/timestamp] [info]Waiting {wait_time} seconds before next attempt...[/info]")
                             await asyncio.sleep(wait_time)
                             attempt_count += 1
@@ -299,8 +308,8 @@ class RingDownloader:
             console.print(f"[timestamp][{now}][/timestamp] [info]Already Present[/info]")
 
     @retry(
-        stop=stop_after_attempt(4),
-        wait=wait_exponential(multiplier=3.0, min=1.0, max=15.0, exp_base=2),
+        stop=stop_after_attempt(MAX_HISTORY_BATCH_ATTEMPTS),
+        wait=wait_exponential(multiplier=HISTORY_RETRY_MULTIPLIER, min=RETRY_BASE_DELAY, max=RETRY_MAX_DELAY, exp_base=2),
         retry=retry_ring_or_404,
         before_sleep=custom_before_sleep_callback,
         reraise=True,
