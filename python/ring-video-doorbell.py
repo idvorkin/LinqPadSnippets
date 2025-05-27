@@ -64,13 +64,13 @@ def custom_before_sleep_callback(retry_state):
     if exception:
         now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
         sleep_time = retry_state.next_action.sleep
-        
+
         # Capture detailed retry state information for debugging
         console.print(f"[timestamp][{now}][/timestamp] [retry]RETRY ATTEMPT {retry_state.attempt_number}/{retry_state.retry_object.stop.max_attempt_number} - SLEEPING for {sleep_time:.2f}s[/retry]")
         console.print(f"[timestamp][{now}][/timestamp] [retry]EXCEPTION TYPE: {type(exception).__name__}[/retry]")
         console.print(f"[timestamp][{now}][/timestamp] [retry]EXCEPTION MESSAGE: {str(exception)}[/retry]")
         console.print(f"[timestamp][{now}][/timestamp] [retry]RETRY OBJECT: {retry_state.retry_object.__class__.__name__}[/retry]")
-        
+
         # Print the retry predicate result explicitly
         if retry_state.retry_object.retry:
             predicate_result = retry_state.retry_object.retry(exception)
@@ -85,7 +85,7 @@ def custom_before_sleep_callback(retry_state):
             console.print(f"[timestamp][{now}][/timestamp] [warning]Unauthorized error detected, reinitializing Ring connection[/warning]")
         elif "404" in str(exception) or (isinstance(exception, RingError) and "not found" in str(exception).lower()):
             console.print(f"[timestamp][{now}][/timestamp] [warning]🔄 RETRYING: 404/Not Found error detected, will retry after sleep[/warning]")
-            
+
             # If this is a RingError with a ClientResponseError cause, print the cause details
             if hasattr(exception, "__cause__") and exception.__cause__ is not None:
                 cause = exception.__cause__
@@ -98,7 +98,7 @@ def custom_before_sleep_callback(retry_state):
 
 def retry_ring_or_404(exception):
     """Retry if exception is RingError or contains '404' in the error message.
-    
+
     404 errors are considered transient network issues and MUST always be retried
     as they typically resolve on subsequent attempts. All RingErrors are also retried.
     """
@@ -106,34 +106,34 @@ def retry_ring_or_404(exception):
     error_str = str(exception)
     if "RetryCallState" in error_str:
         return False
-        
+
     now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
     console.print(f"[timestamp][{now}][/timestamp] [info]Retry predicate evaluating exception: {type(exception).__name__}[/info]")
     console.print(f"[timestamp][{now}][/timestamp] [info]Exception details: {str(exception)}[/info]")
-    
+
     # Track reason for not retrying for better debugging
     non_retriable_reason = "Unknown error type that doesn't match retry criteria"
-    
+
     # Check for ClientResponseError with 404 status directly
     if hasattr(exception, "__cause__") and exception.__cause__ is not None:
         cause = exception.__cause__
         console.print(f"[timestamp][{now}][/timestamp] [info]Checking cause: {type(cause).__name__}: {str(cause)}[/info]")
-        
+
         # Check if the cause is a ClientResponseError with 404 status
         if hasattr(cause, "status") and cause.status == 404:
             console.print(f"[timestamp][{now}][/timestamp] [success]✅ 404 ClientResponseError detected, will retry[/success]")
             return True
         elif hasattr(cause, "status"):
             non_retriable_reason = f"ClientResponseError with non-404 status: {cause.status}"
-    
+
     # More precise check for 404 in the error message - look for HTTP status code patterns
     if " 404 " in error_str or "status=404" in error_str or "status: 404" in error_str or "HTTP 404" in error_str or "code 404" in error_str:
         console.print(f"[timestamp][{now}][/timestamp] [success]✅ 404 HTTP status code detected, will retry[/success]")
         return True
-        
+
     # Check if it's a RingError (which might wrap other exceptions)
     if isinstance(exception, RingError):
-        # First check if this RingError contains a 404 message 
+        # First check if this RingError contains a 404 message
         if "404" in error_str or "not found" in error_str.lower():
             console.print(f"[timestamp][{now}][/timestamp] [success]✅ RingError with 404/Not Found detected, will retry[/success]")
             return True
@@ -152,12 +152,12 @@ def retry_ring_or_404(exception):
             return True
     elif isinstance(exception, Exception):
         non_retriable_reason = f"Non-RingError exception type: {type(exception).__name__}"
-    
+
     # Print detailed information about why this error isn't retriable
     console.print(f"[timestamp][{now}][/timestamp] [error]❌ Not a retriable error - REASON: {non_retriable_reason}[/error]")
     console.print(f"[timestamp][{now}][/timestamp] [error]❌ ERROR TYPE: {type(exception).__name__}[/error]")
     console.print(f"[timestamp][{now}][/timestamp] [error]❌ ERROR MESSAGE: {str(exception)}[/error]")
-    
+
     return False
 
 T = TypeVar("T")
@@ -192,7 +192,7 @@ class RingDownloader:
 
 
     @retry(
-        stop=stop_after_attempt(3),
+        stop=stop_after_attempt(4),
         wait=wait_exponential(multiplier=2.0, min=1.0, max=15.0, exp_base=2),
         retry=retry_ring_or_404,
         before_sleep=custom_before_sleep_callback,
@@ -253,35 +253,35 @@ class RingDownloader:
         )
         now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
         console.print(f"[timestamp][{now}][/timestamp] {idx}/{total_events}: {date_path_kind_id}")
-        
+
         if not Path(date_path_kind_id).is_file():
             console.print(f"[timestamp][{now}][/timestamp] [success]Downloading[/success]")
-            
+
             # Manual retry logic with explicit exception handling
             attempt_count = 1
             max_attempts = 3
-            
+
             while attempt_count <= max_attempts:
                 try:
                     now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
                     console.print(f"[timestamp][{now}][/timestamp] [retry]⏱ ATTEMPT {attempt_count}/{max_attempts}[/retry]")
-                    
+
                     await self.doorbell.async_recording_download(
                         recording_id, date_path_kind_id
                     )
-                    
+
                     now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
                     console.print(f"[timestamp][{now}][/timestamp] [success]Successfully downloaded {recording_id}[/success]")
                     break  # Exit loop on success
-                    
+
                 except Exception as e:
                     now = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
                     console.print(f"[timestamp][{now}][/timestamp] [warning]🛑 Download failed with: {type(e).__name__}: {str(e)}[/warning]")
-                    
+
                     # Check if this is a 404 error
                     if "404" in str(e) or (hasattr(e, "__cause__") and e.__cause__ and hasattr(e.__cause__, "status") and e.__cause__.status == 404):
                         console.print(f"[timestamp][{now}][/timestamp] [warning]🔄 Detected 404 error, will retry...[/warning]")
-                        
+
                         if attempt_count < max_attempts:
                             # Calculate wait time with exponential backoff
                             wait_time = min(2 ** (attempt_count - 1) * 3, 15)
@@ -299,7 +299,7 @@ class RingDownloader:
             console.print(f"[timestamp][{now}][/timestamp] [info]Already Present[/info]")
 
     @retry(
-        stop=stop_after_attempt(3),
+        stop=stop_after_attempt(4),
         wait=wait_exponential(multiplier=3.0, min=1.0, max=15.0, exp_base=2),
         retry=retry_ring_or_404,
         before_sleep=custom_before_sleep_callback,
