@@ -24,7 +24,7 @@ import schedule
 import pendulum
 from pathlib import Path
 from ring_doorbell import Ring, Auth, Requires2FAError
-from ring_doorbell.exceptions import RingError
+from ring_doorbell.exceptions import RingError, AuthenticationError
 from icecream import ic
 from typing import List, Dict, Any, TypeVar
 import asyncio
@@ -213,7 +213,17 @@ class RingDownloader:
         print(f"[{now}] Initializing Ring connection")
         self.auth = await self._setup_auth()
         self.ring = Ring(self.auth)
-        await self.ring.async_update_data()
+        try:
+            await self.ring.async_update_data()
+        except AuthenticationError:
+            if self.cache_file.is_file():
+                console.print("[warning]Cached token expired/invalid, deleting and re-authenticating[/warning]")
+                self.cache_file.unlink()
+                self.auth = await self._setup_auth()
+                self.ring = Ring(self.auth)
+                await self.ring.async_update_data()
+            else:
+                raise
         self.doorbell = await self._get_doorbell()
         print(f"[{now}] Successfully initialized Ring connection")
 
